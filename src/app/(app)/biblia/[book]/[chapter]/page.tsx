@@ -8,7 +8,11 @@ export default async function BibleChapterPage({
   searchParams,
 }: {
   params: { book: string; chapter: string }
-  searchParams?: { backToJourney?: string }
+  searchParams?: {
+    backToJourney?: string
+    journey?: string
+    day?: string
+  }
 }) {
   const supabase = await createSupabaseServerClient()
 
@@ -82,44 +86,46 @@ export default async function BibleChapterPage({
   const previousChapter = chapter > 1 ? chapter - 1 : null
   const nextChapter = chapter < BOOK_CHAPTERS[book] ? chapter + 1 : null
 
-  const journeySlug = searchParams.journey ?? null
-const journeyDay = searchParams.day ? Number(searchParams.day) : null
+  const journeySlug = searchParams?.journey ?? null
+  const journeyDay = searchParams?.day ? Number(searchParams.day) : null
 
-let journeyContext = null
+  let journeyContext = null
 
-if (journeySlug && journeyDay) {
-  const { data: journey } = await supabase
-    .from('journeys')
-    .select('id, title, slug')
-    .eq('slug', journeySlug)
-    .maybeSingle()
+  if (journeySlug && journeyDay) {
+    const { data: journey } = await supabase
+      .from('journeys')
+      .select('id, title, slug')
+      .eq('slug', journeySlug)
+      .maybeSingle()
 
-  if (journey) {
-    journeyContext = {
-  id: journey.id,
-  title: journey.title,
-  slug: journey.slug,
-  day: journeyDay,
-  book,
-  chapter,
-}
+    const jornada = journey as any
+
+    if (jornada) {
+      journeyContext = {
+        id: jornada.id,
+        title: jornada.title,
+        slug: jornada.slug,
+        day: journeyDay,
+        book,
+        chapter,
+      }
+    }
   }
-}
 
   return (
     <BibleChapterExperience
-    currentUserId={user.id}
-    journeyContext={journeyContext}
+      currentUserId={user.id}
+      journeyContext={journeyContext}
       book={book}
       chapter={chapter}
       previousChapter={previousChapter}
       nextChapter={nextChapter}
-      favorites={favorites ?? []}
-      notes={notes ?? []}
-      highlights={highlights ?? []}
-      communityFavorites={communityFavorites ?? []}
-      communityHighlights={communityHighlights ?? []}
-      palavraRefs={palavraRefs ?? []}
+      favorites={(favorites ?? []) as any[]}
+      notes={(notes ?? []) as any[]}
+      highlights={(highlights ?? []) as any[]}
+      communityFavorites={(communityFavorites ?? []) as any[]}
+      communityHighlights={(communityHighlights ?? []) as any[]}
+      palavraRefs={(palavraRefs ?? []) as any[]}
       backToJourney={searchParams?.backToJourney ?? null}
     />
   )

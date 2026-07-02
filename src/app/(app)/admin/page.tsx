@@ -87,12 +87,14 @@ export default async function AdminPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .maybeSingle()
 
-  if (profile?.role !== 'admin') redirect('/inicio')
+const role = (profile as { role?: string } | null)?.role
+
+if (role !== 'admin') redirect('/inicio')
 
   const [{ count: totalMembers }, { count: totalLeaders }, { count: totalPosts }, { count: totalAchievements }] =
     await Promise.all([

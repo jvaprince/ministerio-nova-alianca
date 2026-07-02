@@ -73,12 +73,14 @@ export default async function AdminAtividadePage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .maybeSingle()
 
-  if (profile?.role !== 'admin') redirect('/inicio')
+const role = (profile as { role?: string } | null)?.role
+
+if (role !== 'admin') redirect('/inicio')
 
     const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

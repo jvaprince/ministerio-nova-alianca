@@ -58,7 +58,9 @@ export default async function AgendaPage() {
     .eq('id', user!.id)
     .single()
 
-  const podeGerir = ['admin', 'leader'].includes(profile?.role ?? '')
+  const role = (profile as { role?: string } | null)?.role
+
+const podeGerir = ['admin', 'leader'].includes(role ?? '')
 
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -93,11 +95,13 @@ export default async function AgendaPage() {
     .order('worship_date', { ascending: true })
     .order('created_at', { ascending: false })
 
-  const nextWorshipSet =
-    worshipSets?.find((set: any) => {
-      const date = set.event?.event_date ?? set.worship_date
-      return date && date >= today
-    }) ?? null
+  const listaWorshipSets = (worshipSets ?? []) as any[]
+
+const nextWorshipSet =
+  listaWorshipSets.find((set) => {
+    const date = set.event?.event_date ?? set.worship_date
+    return date && date >= today
+  }) ?? null
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-8 bg-[#050816]">
@@ -120,7 +124,7 @@ export default async function AgendaPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <AgendaCalendar events={events ?? []} />
+            <AgendaCalendar events={(events ?? []) as any[]} />
 
             {podeGerir && (
               <Link

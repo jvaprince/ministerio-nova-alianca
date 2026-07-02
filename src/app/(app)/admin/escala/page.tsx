@@ -8,7 +8,6 @@ import {
   Clock3,
   ShieldCheck,
 } from 'lucide-react'
-
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getResponsavelPalavra } from '@/lib/palavra/actions'
 
@@ -18,7 +17,6 @@ export const metadata: Metadata = {
 
 function addDays(days: number) {
   const date = new Date()
-
   date.setDate(date.getDate() + days)
 
   return new Intl.DateTimeFormat('en-CA', {
@@ -30,13 +28,18 @@ function addDays(days: number) {
 }
 
 function formatDate(date: string) {
-  return new Date(`${date}T12:00:00`).toLocaleDateString(
-    'pt-BR',
-    {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    }
+  return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
+function getNomeResponsavel(item: any) {
+  return (
+    item?.pending_profile?.name ??
+    item?.user?.name ??
+    'Sem responsável'
   )
 }
 
@@ -67,9 +70,11 @@ export default async function EscalaAdminPage() {
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (profile?.role !== 'admin') {
+  const role = (profile as { role?: string } | null)?.role
+
+  if (role !== 'admin') {
     redirect('/inicio')
   }
 
@@ -105,10 +110,7 @@ export default async function EscalaAdminPage() {
 
       <div className="rounded-[28px] border border-emerald-300/15 bg-emerald-500/5 p-5 mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <ShieldCheck
-            size={18}
-            className="text-emerald-400"
-          />
+          <ShieldCheck size={18} className="text-emerald-400" />
 
           <p className="font-bold text-emerald-300">
             Escala automática ativa
@@ -116,28 +118,20 @@ export default async function EscalaAdminPage() {
         </div>
 
         <p className="text-sm text-white/55 leading-relaxed">
-          O sistema calcula automaticamente quem é o
-          responsável do dia. Você só precisa intervir
-          quando alguém não puder participar.
+          O sistema calcula automaticamente quem é o responsável do dia. Você só
+          precisa intervir quando alguém não puder participar.
         </p>
       </div>
 
       <div className="rounded-[28px] border border-brand-300/15 bg-white/[0.04] p-5 mb-6">
         <div className="flex items-center gap-2 mb-4">
-          <Clock3
-            size={18}
-            className="text-brand-300"
-          />
+          <Clock3 size={18} className="text-brand-300" />
 
-          <h2 className="font-black text-lg">
-            Hoje
-          </h2>
+          <h2 className="font-black text-lg">Hoje</h2>
         </div>
 
         <p className="text-2xl font-black">
-          {hoje?.pending_profile?.name ??
-            hoje?.user?.name ??
-            'Sem responsável'}
+          {getNomeResponsavel(hoje)}
         </p>
 
         <p className="text-sm text-white/40 mt-2">
@@ -161,19 +155,13 @@ export default async function EscalaAdminPage() {
 
       <div className="rounded-[28px] border border-brand-300/15 bg-white/[0.04] p-5 mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <UserRound
-            size={18}
-            className="text-brand-300"
-          />
+          <UserRound size={18} className="text-brand-300" />
 
-          <h2 className="font-black text-lg">
-            Amanhã
-          </h2>
+          <h2 className="font-black text-lg">Amanhã</h2>
         </div>
 
         <p className="text-xl font-bold">
-          {amanha?.pending_profile?.name ??
-            amanha?.user?.name}
+          {getNomeResponsavel(amanha)}
         </p>
 
         <p className="text-sm text-white/40 mt-2">
@@ -183,10 +171,7 @@ export default async function EscalaAdminPage() {
 
       <div className="rounded-[28px] border border-brand-300/15 bg-white/[0.04] p-5">
         <div className="flex items-center gap-2 mb-4">
-          <CalendarDays
-            size={18}
-            className="text-brand-300"
-          />
+          <CalendarDays size={18} className="text-brand-300" />
 
           <h2 className="font-black text-lg">
             Próximos responsáveis
@@ -201,8 +186,7 @@ export default async function EscalaAdminPage() {
             >
               <div>
                 <p className="font-semibold">
-                  {item?.pending_profile?.name ??
-                    item?.user?.name}
+                  {getNomeResponsavel(item)}
                 </p>
 
                 <p className="text-xs text-white/40 mt-1">
@@ -210,10 +194,7 @@ export default async function EscalaAdminPage() {
                 </p>
               </div>
 
-              <CalendarDays
-                size={16}
-                className="text-white/30"
-              />
+              <CalendarDays size={16} className="text-white/30" />
             </div>
           ))}
         </div>

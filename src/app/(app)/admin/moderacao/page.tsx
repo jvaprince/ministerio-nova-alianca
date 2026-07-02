@@ -35,12 +35,14 @@ export default async function AdminModeracaoPage() {
   if (!user) redirect('/login')
 
   const { data: myProfile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .maybeSingle()
 
-  if (myProfile?.role !== 'admin') redirect('/inicio')
+const role = (myProfile as { role?: string } | null)?.role
+
+if (role !== 'admin') redirect('/inicio')
 
   const { data: posts } = await supabase
     .from('feed_posts')

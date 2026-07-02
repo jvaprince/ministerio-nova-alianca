@@ -92,7 +92,7 @@ export default async function InicioPage() {
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
 
   const responsavelNome =
-    responsavelHoje?.pending_profile?.name ?? responsavelHoje?.user?.name
+  responsavelHoje?.pending_profile?.name ?? (responsavelHoje as any)?.user?.name
 
   const responsavelUserId =
   responsavelHoje?.pending_profile?.linked_user_id ??

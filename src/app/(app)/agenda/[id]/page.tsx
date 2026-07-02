@@ -66,6 +66,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
 
   if (!event) notFound()
 
+  const evento = event as any
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
@@ -82,8 +84,10 @@ export default async function EventoPage({ params }: { params: { id: string } })
         id
       )
     `)
-    .eq('event_id', event.id)
+    .eq('event_id', evento.id)
     .maybeSingle()
+
+  const repertorioAtual = repertorio as any
 
   const { data: rsvps } = await supabase
     .from('event_rsvps')
@@ -97,24 +101,29 @@ export default async function EventoPage({ params }: { params: { id: string } })
         avatar_url
       )
     `)
-    .eq('event_id', event.id)
+    .eq('event_id', evento.id)
 
   const { data: members } = await supabase
     .from('profiles')
     .select('id, name, username, avatar_url')
 
-  const currentUserRsvp = rsvps?.find((rsvp) => rsvp.user_id === user?.id)
+  const listaRsvps = (rsvps ?? []) as any[]
+  const listaMembers = (members ?? []) as any[]
 
-  const goingCount =
-    rsvps?.filter((rsvp) => rsvp.status === 'going').length ?? 0
+  const currentUserRsvp = listaRsvps.find((rsvp) => rsvp.user_id === user?.id)
 
-  const notGoingCount =
-    rsvps?.filter((rsvp) => rsvp.status === 'not_going').length ?? 0
+  const goingCount = listaRsvps.filter((rsvp) => rsvp.status === 'going').length
+
+  const notGoingCount = listaRsvps.filter(
+    (rsvp) => rsvp.status === 'not_going'
+  ).length
+
+  const role = (profile as { role?: string } | null)?.role
 
   const podeGerenciarEvento =
-    profile?.role === 'admin' ||
-    profile?.role === 'leader' ||
-    event.created_by === user?.id
+    role === 'admin' ||
+    role === 'leader' ||
+    evento.created_by === user?.id
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-8 bg-[#050816]">
@@ -130,33 +139,33 @@ export default async function EventoPage({ params }: { params: { id: string } })
 
           <div className="mt-4">
             <p className="text-[11px] font-black tracking-[0.24em] uppercase text-brand-400">
-              {formatEventType(event.event_type)}
+              {formatEventType(evento.event_type)}
             </p>
 
             <h1 className="text-[28px] font-black text-white leading-tight tracking-tight mt-2">
-              {event.title}
+              {evento.title}
             </h1>
           </div>
 
           {podeGerenciarEvento && (
             <div className="flex gap-2 mt-5">
               <Link
-                href={`/agenda/${event.id}/editar`}
+                href={`/agenda/${evento.id}/editar`}
                 className="flex-1 text-center border border-brand-300/15 bg-white/[0.04] text-white/75 text-sm font-semibold py-3 rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all active:scale-[0.98]"
               >
                 Editar
               </Link>
 
-              <DeleteEventButton eventId={event.id} />
+              <DeleteEventButton eventId={evento.id} />
             </div>
           )}
         </div>
 
-        {event.cover_url && (
+        {evento.cover_url && (
           <div className="px-4 mb-5">
             <div className="relative overflow-hidden rounded-[30px] border border-brand-300/15 shadow-[0_0_28px_rgba(59,130,246,0.10),0_20px_60px_rgba(0,0,0,0.28)]">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-brand-300/50 to-transparent" />
-              <EventCoverModal src={event.cover_url} alt={event.title} />
+              <EventCoverModal src={evento.cover_url} alt={evento.title} />
             </div>
           </div>
         )}
@@ -165,27 +174,27 @@ export default async function EventoPage({ params }: { params: { id: string } })
           <PremiumCard className="p-4 space-y-3">
             <p className="relative flex items-center gap-3 text-[14px] text-white/75">
               <Calendar size={16} className="text-brand-400" />
-              {formatDate(event.event_date)}
+              {formatDate(evento.event_date)}
             </p>
 
-            {event.event_time && (
+            {evento.event_time && (
               <p className="relative flex items-center gap-3 text-[14px] text-white/75">
                 <Clock size={16} className="text-brand-400" />
-                {event.event_time.slice(0, 5)}
+                {evento.event_time.slice(0, 5)}
               </p>
             )}
 
-            {event.location && (
+            {evento.location && (
               <p className="relative flex items-center gap-3 text-[14px] text-white/75">
                 <MapPin size={16} className="text-brand-400" />
-                {event.location}
+                {evento.location}
               </p>
             )}
           </PremiumCard>
 
-          {repertorio && (
+          {repertorioAtual && (
             <Link
-              href={`/louvores/${repertorio.id}`}
+              href={`/louvores/${repertorioAtual.id}`}
               className="block transition-all duration-300 active:scale-[0.985]"
             >
               <PremiumCard className="p-4">
@@ -200,13 +209,13 @@ export default async function EventoPage({ params }: { params: { id: string } })
                     </p>
 
                     <h2 className="text-[16px] font-black text-white truncate">
-                      {repertorio.title}
+                      {repertorioAtual.title}
                     </h2>
 
                     <p className="text-[12px] text-white/40 mt-1">
-                      {repertorio.songs?.length ?? 0} louvor
-                      {(repertorio.songs?.length ?? 0) === 1 ? '' : 'es'} preparado
-                      {(repertorio.songs?.length ?? 0) === 1 ? '' : 's'}
+                      {repertorioAtual.songs?.length ?? 0} louvor
+                      {(repertorioAtual.songs?.length ?? 0) === 1 ? '' : 'es'} preparado
+                      {(repertorioAtual.songs?.length ?? 0) === 1 ? '' : 's'}
                     </p>
                   </div>
                 </div>
@@ -215,34 +224,34 @@ export default async function EventoPage({ params }: { params: { id: string } })
           )}
 
           <EventRsvpButtons
-            eventId={event.id}
+            eventId={evento.id}
             currentStatus={currentUserRsvp?.status}
             goingCount={goingCount}
             notGoingCount={notGoingCount}
-            rsvps={rsvps ?? []}
-            members={members ?? []}
+            rsvps={listaRsvps}
+            members={listaMembers}
           />
 
           <AddToCalendarButton
-            title={event.title}
-            description={event.description}
-            location={event.location}
-            date={event.event_date}
-            time={event.event_time}
+            title={evento.title}
+            description={evento.description}
+            location={evento.location}
+            date={evento.event_date}
+            time={evento.event_time}
           />
 
           <p className="text-[11px] text-white/30 text-center -mt-1">
             Compatível com Google Agenda, Apple Calendário e Outlook.
           </p>
 
-          {event.description && (
+          {evento.description && (
             <PremiumCard className="p-4">
               <p className="relative text-[11px] font-black tracking-[0.24em] uppercase text-white/35 mb-2">
                 Sobre o evento
               </p>
 
               <p className="relative text-[14px] text-white/70 leading-relaxed whitespace-pre-line">
-                {event.description}
+                {evento.description}
               </p>
             </PremiumCard>
           )}

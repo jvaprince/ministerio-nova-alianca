@@ -36,14 +36,20 @@ export default async function EditarEventoPage({
     .eq('id', user.id)
     .single()
 
-  const podeEditar =
-    profile?.role === 'admin' ||
-    profile?.role === 'leader' ||
-    event.created_by === user.id
+  const role = (profile as { role?: string } | null)?.role
+
+const createdBy = (event as any)?.created_by
+
+const podeEditar =
+  role === 'admin' ||
+  role === 'leader' ||
+  createdBy === user.id
 
   if (!podeEditar) redirect(`/agenda/${params.id}`)
 
   const editarComId = editarEvento.bind(null, params.id)
+
+  const evento = event as any
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-8">
@@ -55,7 +61,7 @@ export default async function EditarEventoPage({
 
       <div className="relative z-10">
         <div className="px-4 pt-10 pb-5">
-          <BackButton href={`/agenda/${event.id}`} />
+          <BackButton href={`/agenda/${evento.id}`} />
 
           <div className="mt-4">
             <p className="text-[11px] font-black tracking-[0.24em] uppercase text-white/35">
@@ -68,7 +74,7 @@ export default async function EditarEventoPage({
           </div>
         </div>
 
-        <form action={editarComId} className="px-4 pt-2 space-y-4">
+        <form action={editarComId as any} className="px-4 pt-2 space-y-4">
           <div>
             <label className="block text-[12px] font-black tracking-widest uppercase text-white/35 mb-2">
               Título *
@@ -77,7 +83,7 @@ export default async function EditarEventoPage({
             <input
               name="title"
               required
-              defaultValue={event.title}
+              defaultValue={evento.title}
               className="w-full rounded-2xl border border-brand-300/15 bg-white/[0.05] px-4 py-3.5 text-white text-sm placeholder:text-white/25 outline-none focus:border-brand-400/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
             />
           </div>
@@ -90,7 +96,7 @@ export default async function EditarEventoPage({
             <select
               name="event_type"
               required
-              defaultValue={event.event_type}
+              defaultValue={evento.event_type}
               className="w-full rounded-2xl border border-brand-300/15 bg-white/[0.05] px-4 py-3.5 text-white text-sm outline-none focus:border-brand-400/45"
             >
               <option value="culto" className="text-black">Culto</option>
@@ -112,7 +118,7 @@ export default async function EditarEventoPage({
                 name="event_date"
                 type="date"
                 required
-                defaultValue={event.event_date}
+                defaultValue={evento.event_date}
                 className="w-full rounded-2xl border border-brand-300/15 bg-white/[0.05] px-4 py-3.5 text-white text-sm outline-none focus:border-brand-400/45"
               />
             </div>
@@ -125,7 +131,7 @@ export default async function EditarEventoPage({
               <input
                 name="event_time"
                 type="time"
-                defaultValue={event.event_time?.slice(0, 5) ?? ''}
+                defaultValue={evento.event_time?.slice(0, 5) ?? ''}
                 className="w-full rounded-2xl border border-brand-300/15 bg-white/[0.05] px-4 py-3.5 text-white text-sm outline-none focus:border-brand-400/45"
               />
             </div>
@@ -138,12 +144,12 @@ export default async function EditarEventoPage({
 
             <input
               name="location"
-              defaultValue={event.location ?? ''}
+              defaultValue={evento.location ?? ''}
               className="w-full rounded-2xl border border-brand-300/15 bg-white/[0.05] px-4 py-3.5 text-white text-sm placeholder:text-white/25 outline-none focus:border-brand-400/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
             />
           </div>
 
-          {event.cover_url && (
+          {evento.cover_url && (
             <div>
               <p className="text-[12px] font-black tracking-widest uppercase text-white/35 mb-2">
                 Banner atual
@@ -153,8 +159,8 @@ export default async function EditarEventoPage({
                 <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-brand-300/45 to-transparent" />
 
                 <img
-                  src={event.cover_url}
-                  alt={event.title}
+                  src={evento.cover_url}
+                  alt={evento.title}
                   className="w-full aspect-[16/9] object-cover"
                 />
               </div>
@@ -175,7 +181,7 @@ export default async function EditarEventoPage({
             <textarea
               name="description"
               rows={5}
-              defaultValue={event.description ?? ''}
+              defaultValue={evento.description ?? ''}
               className="w-full resize-none rounded-[24px] border border-brand-300/15 bg-white/[0.05] px-4 py-4 text-white text-sm placeholder:text-white/25 outline-none focus:border-brand-400/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
             />
           </div>
