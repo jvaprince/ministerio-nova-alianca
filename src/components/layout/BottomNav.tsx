@@ -46,15 +46,15 @@ export default function BottomNav({
   return (
     <div className="bottom-nav fixed left-0 right-0 bottom-0 z-50 px-4 pb-[env(safe-area-inset-bottom)] pt-3 pointer-events-none">
       <nav
-        className="
-          pointer-events-auto relative mx-auto max-w-[430px] overflow-hidden
-          rounded-[34px] border border-brand-300/20 bg-[#050816]/82
-          backdrop-blur-2xl
-          shadow-[0_18px_50px_rgba(0,0,0,0.45),0_0_28px_rgba(59,130,246,0.12),inset_0_1px_0_rgba(255,255,255,0.10)]
-          px-2 py-2 flex items-center justify-between
-          pb-[calc(0.75rem+env(safe-area-inset-bottom))]
-        "
-      >
+  className="
+    pointer-events-auto relative mx-auto max-w-[430px] overflow-hidden
+    rounded-[34px] border border-brand-300/20 bg-[#050816]/90
+    backdrop-blur-xl
+    shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_12px_34px_rgba(0,0,0,0.28)]
+    px-2 py-2 flex items-center justify-between
+    pb-[calc(0.75rem+env(safe-area-inset-bottom))]
+  "
+>
         <div className="pointer-events-none absolute -left-10 -top-10 h-28 w-28 rounded-full bg-brand-500/15 blur-2xl" />
         <div className="pointer-events-none absolute -right-10 bottom-0 h-28 w-28 rounded-full bg-brand-400/10 blur-2xl" />
 
