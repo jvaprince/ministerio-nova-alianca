@@ -230,3 +230,8 @@ body:has(.bible-reading-page) nav {
 body.story-viewer-open .bottom-nav {
   display: none !important;
 }
+
+html,
+body {
+  background: #050816;
+}
