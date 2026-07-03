@@ -534,11 +534,21 @@ export async function criarPalavra(formData: FormData) {
 
   const profile = profileData as any
 
-  if (!profile || !['admin', 'leader'].includes(profile.role)) {
-    redirect('/palavra?erro=Sem permissão para criar Palavra do Dia.')
-  }
-
   const scheduled_date = formData.get('scheduled_date') as string
+
+const responsavel = await getResponsavelPalavra(scheduled_date)
+
+const ehAdmin = profile?.role === 'admin'
+
+const ehResponsavelDoDia =
+  responsavel?.user?.id === user.id ||
+  responsavel?.pending_profile?.linked_user_id === user.id
+
+if (!ehAdmin && !ehResponsavelDoDia) {
+  redirect(
+    '/palavra?erro=Você não é o responsável pela Palavra deste dia.'
+  )
+}
   const verse = formData.get('verse') as string
   const verse_ref = formData.get('verse_ref') as string
   const verse_book = formData.get('verse_book') as string
@@ -865,6 +875,8 @@ export async function getPalavraById(id: string): Promise<PalavraDodia | null> {
   const supabase = (await createSupabaseServerClient()) as any
   const { data: { user } } = await supabase.auth.getUser()
 
+  
+
   const { data } = await supabase
     .from('palavra_do_dia')
     .select(`
@@ -899,4 +911,103 @@ export async function getPalavraById(id: string): Promise<PalavraDodia | null> {
   }
 
   return palavra as PalavraDodia
+}
+
+export async function togglePalavraFavorite(palavraId: string) {
+  const supabase = (await createSupabaseServerClient()) as any
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Não autenticado' }
+
+  const { data: existingData } = await supabase
+    .from('palavra_favorites')
+    .select('id')
+    .eq('palavra_id', palavraId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const existing = existingData as any
+
+  if (existing) {
+    await supabase
+      .from('palavra_favorites')
+      .delete()
+      .eq('id', existing.id)
+
+    revalidatePath('/palavra')
+    revalidatePath(`/palavra/${palavraId}`)
+
+    return {
+      active: false,
+    }
+  }
+
+  await supabase
+    .from('palavra_favorites')
+    .insert({
+      palavra_id: palavraId,
+      user_id: user.id,
+    })
+
+  revalidatePath('/palavra')
+  revalidatePath(`/palavra/${palavraId}`)
+
+  return {
+    active: true,
+  }
+}
+
+export async function getPalavraFavoriteStatus(
+  palavraId: string
+): Promise<boolean> {
+  const supabase = (await createSupabaseServerClient()) as any
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return false
+
+  const { data } = await supabase
+    .from('palavra_favorites')
+    .select('id')
+    .eq('palavra_id', palavraId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  return !!data
+}
+
+export async function getPalavrasFavoritas() {
+  const supabase = (await createSupabaseServerClient()) as any
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('palavra_favorites')
+    .select(`
+      created_at,
+      palavra:palavra_do_dia (
+        *,
+        responsible:profiles!responsible_id (
+          id,
+          name,
+          username,
+          avatar_url
+        )
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', {
+      ascending: false,
+    })
+
+  return data ?? []
 }

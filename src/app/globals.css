@@ -226,3 +226,7 @@ body:has(.bible-reading-page) nav {
 .border-app {
   border-color: var(--app-border);
 }
+
+body.story-viewer-open .bottom-nav {
+  display: none !important;
+}

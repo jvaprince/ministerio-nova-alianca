@@ -148,41 +148,45 @@ export default async function BibliaPage() {
                   : '/biblia/João/1'
               }
             >
-              <PremiumCard className="p-4 min-h-[150px]">
-                <Clock size={21} className="relative text-brand-400 mb-5" />
+              <PremiumCard className="p-4 h-[135px] sm:h-[150px] flex flex-col justify-between">
+  <div>
+    <Clock size={20} className="relative text-brand-400 mb-3" />
 
-                <p className="relative text-white/45 text-xs">
-                  Continue lendo
-                </p>
+    <p className="relative text-white/45 text-xs">
+      Continue lendo
+    </p>
 
-                <p className="relative text-white font-bold text-lg mt-1">
-                  {ultimaLeitura
-                    ? `${ultimaLeitura.book} ${ultimaLeitura.chapter}`
-                    : 'João 1'}
-                </p>
+    <p className="relative text-white font-bold text-[20px] mt-1 leading-none">
+      {ultimaLeitura
+        ? `${ultimaLeitura.book} ${ultimaLeitura.chapter}`
+        : 'João 1'}
+    </p>
+  </div>
 
-                <p className="relative text-white/30 text-[11px] mt-2">
-                  Abrir capítulo →
-                </p>
-              </PremiumCard>
+  <p className="relative text-white/30 text-[11px]">
+    Abrir capítulo →
+  </p>
+</PremiumCard>
             </Link>
 
             <Link href="/biblia/jornada">
-              <PremiumCard className="p-4 min-h-[150px]">
-                <Compass size={21} className="relative text-brand-400 mb-5" />
+              <PremiumCard className="p-4 h-[135px] sm:h-[150px] flex flex-col justify-between">
+  <div>
+    <Compass size={20} className="relative text-brand-400 mb-3" />
 
-                <p className="relative text-white/45 text-xs">
-                  Jornadas
-                </p>
+    <p className="relative text-white/45 text-xs">
+      Jornadas
+    </p>
 
-                <p className="relative text-white font-bold text-lg mt-1">
-                  Explorar planos
-                </p>
+    <p className="relative text-white font-bold text-[20px] mt-1 leading-tight">
+      Explorar planos
+    </p>
+  </div>
 
-                <p className="relative text-white/30 text-[11px] mt-2">
-                  Ver jornadas →
-                </p>
-              </PremiumCard>
+  <p className="relative text-white/30 text-[11px]">
+    Ver jornadas →
+  </p>
+</PremiumCard>
             </Link>
           </div>
 

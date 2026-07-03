@@ -123,6 +123,22 @@ export default function FeedStories({
   }, [viewedStorageKey])
 
   useEffect(() => {
+  if (!activeGroup) {
+    document.body.style.overflow = ''
+    document.body.classList.remove('story-viewer-open')
+    return
+  }
+
+  document.body.style.overflow = 'hidden'
+  document.body.classList.add('story-viewer-open')
+
+  return () => {
+    document.body.style.overflow = ''
+    document.body.classList.remove('story-viewer-open')
+  }
+}, [activeGroup])
+
+  useEffect(() => {
     setProgress(0)
     setShowDetails(false)
   }, [activeStory?.id])
@@ -205,6 +221,14 @@ export default function FeedStories({
     }
   }
 
+  function closeStory() {
+    setActiveGroup(null)
+    setActiveIndex(0)
+    setProgress(0)
+    setShowDetails(false)
+    setPaused(false)
+  }
+
   function goNext() {
     if (!activeGroup) return
 
@@ -217,10 +241,7 @@ export default function FeedStories({
       return
     }
 
-    setActiveGroup(null)
-    setActiveIndex(0)
-    setProgress(0)
-    setShowDetails(false)
+    closeStory()
   }
 
   function goPrev() {
@@ -252,10 +273,7 @@ export default function FeedStories({
       )
 
       if (remainingStories.length === 0) {
-        setActiveGroup(null)
-        setActiveIndex(0)
-        setProgress(0)
-        setShowDetails(false)
+        closeStory()
         return
       }
 
@@ -373,20 +391,20 @@ export default function FeedStories({
       </div>
 
       {activeGroup && activeStory && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+        <div className="fixed inset-0 z-[999999] bg-black flex items-center justify-center">
           <button
-            type="button"
-            onClick={() => setActiveGroup(null)}
-            className="absolute top-5 right-5 z-50 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
-          >
-            <X size={20} />
-          </button>
+  type="button"
+  onClick={closeStory}
+  className="absolute top-7 right-4 z-[1000000] w-9 h-9 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white"
+>
+  <X size={18} />
+</button>
 
           <div
-            className="relative w-full max-w-[390px] aspect-[9/16] bg-black overflow-hidden rounded-none sm:rounded-[28px]"
+            className="relative w-full h-full max-w-[430px] sm:h-auto sm:max-w-[390px] sm:aspect-[9/16] bg-black overflow-hidden sm:rounded-[28px]"
             onPointerDown={(e) => {
               const target = e.target as HTMLElement
-              if (target.tagName === 'BUTTON') return
+              if (target.tagName === 'BUTTON' || target.tagName === 'A') return
               setPaused(true)
             }}
             onPointerUp={() => setPaused(false)}
@@ -441,13 +459,13 @@ export default function FeedStories({
 
             {isOwner && (
               <button
-                type="button"
-                onClick={handleDeleteStory}
-                disabled={isPending}
-                className="absolute top-7 right-4 z-50 w-9 h-9 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white/80 disabled:opacity-40"
-              >
-                <Trash2 size={17} />
-              </button>
+  type="button"
+  onClick={handleDeleteStory}
+  disabled={isPending}
+  className="absolute top-7 right-16 z-50 w-9 h-9 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white/80 disabled:opacity-40"
+>
+  <Trash2 size={17} />
+</button>
             )}
 
             <button
@@ -496,7 +514,7 @@ export default function FeedStories({
               </div>
             )}
 
-            <div className="absolute left-4 right-4 bottom-5 z-50 flex items-center justify-between gap-3">
+            <div className="absolute left-4 right-4 bottom-5 z-50 flex items-center justify-between gap-3 pb-[env(safe-area-inset-bottom)]">
               {isOwner ? (
                 <button
                   type="button"
@@ -531,7 +549,7 @@ export default function FeedStories({
           </div>
 
           {showDetails && isOwner && (
-            <div className="fixed inset-0 z-[999] bg-black/55 flex items-end justify-center">
+            <div className="fixed inset-0 z-[1000001] bg-black/55 flex items-end justify-center">
               <div className="w-full max-w-[430px] mx-auto rounded-t-[28px] bg-[#111] border-t border-white/10 px-4 pt-3 pb-8 h-[55vh] overflow-y-auto">
                 <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
 

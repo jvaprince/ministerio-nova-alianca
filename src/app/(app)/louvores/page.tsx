@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Music, Plus, Calendar, ChevronRight } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import BackButton from '@/components/ui/BackButton'
 
 export const metadata: Metadata = {
   title: 'Louvores — Ministério Nova Aliança',
@@ -99,29 +100,35 @@ export default async function LouvoresPage() {
       </div>
 
       <div className="relative z-10">
-        <div className="px-5 pt-12 pb-5 flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-black tracking-[0.24em] uppercase text-brand-400">
-              Louvores
-            </p>
-
-            <h1 className="text-[26px] font-black text-white leading-tight tracking-tight mt-1">
-              Repertórios
-            </h1>
-
-            <p className="text-white/40 text-sm mt-2 leading-relaxed">
-              Prepare-se para os cultos e acompanhe as músicas da semana.
-            </p>
+        <div className="px-5 pt-10 pb-5">
+          <div className="mb-5">
+            <BackButton href="/agenda" />
           </div>
 
-          {podeGerir && (
-            <Link
-              href="/louvores/criar"
-              className="w-11 h-11 rounded-full border border-brand-300/25 bg-brand-500/15 backdrop-blur-xl flex items-center justify-center text-brand-300 shadow-[0_0_24px_rgba(59,130,246,0.14),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 active:scale-95"
-            >
-              <Plus size={19} />
-            </Link>
-          )}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-black tracking-[0.24em] uppercase text-brand-400">
+                Louvores
+              </p>
+
+              <h1 className="text-[26px] font-black text-white leading-tight tracking-tight mt-1">
+                Repertórios
+              </h1>
+
+              <p className="text-white/40 text-sm mt-2 leading-relaxed">
+                Prepare-se para os cultos e acompanhe as músicas da semana.
+              </p>
+            </div>
+
+            {podeGerir && (
+              <Link
+                href="/louvores/criar"
+                className="w-11 h-11 rounded-full border border-brand-300/25 bg-brand-500/15 backdrop-blur-xl flex items-center justify-center text-brand-300 shadow-[0_0_24px_rgba(59,130,246,0.14),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 active:scale-95"
+              >
+                <Plus size={19} />
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="px-4 space-y-6">

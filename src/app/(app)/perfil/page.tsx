@@ -16,6 +16,7 @@ import {
   Sparkles,
   ShieldCheck,
 } from 'lucide-react'
+import ProfilePostCard from '@/components/perfil/ProfilePostCard'
 
 export const metadata: Metadata = {
   title: 'Perfil — Ministério Nova Aliança',

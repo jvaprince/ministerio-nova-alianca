@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import JourneyExplorer from '@/components/biblia/JourneyExplorer'
 
@@ -41,7 +42,7 @@ export default async function JornadasPage() {
     : 0
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050816] px-5 pt-12 pb-52">
+    <div className="relative min-h-screen overflow-hidden bg-[#050816] px-5 pt-10 pb-52">
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute top-20 -left-24 h-72 w-72 rounded-full bg-brand-500/10 blur-3xl" />
         <div className="absolute top-[430px] -right-24 h-80 w-80 rounded-full bg-brand-400/10 blur-3xl" />
@@ -49,6 +50,13 @@ export default async function JornadasPage() {
       </div>
 
       <div className="relative z-10">
+        <Link
+          href="/biblia"
+          className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-300/20 bg-white/[0.04] text-brand-300 backdrop-blur-xl active:scale-95"
+        >
+          <ArrowLeft size={19} />
+        </Link>
+
         <header className="mb-7">
           <p className="text-brand-400 text-[11px] uppercase tracking-[0.28em] font-black">
             Jornada Bíblica

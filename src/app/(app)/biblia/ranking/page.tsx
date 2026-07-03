@@ -72,15 +72,16 @@ export default async function RankingPage() {
     new Set(pontosRanking.map((item) => item.user_id))
   )
 
-  const { data: rankingProfiles } =
-    rankingUserIds.length > 0
-      ? await supabase
-          .from('profiles')
-          .select('id, name, username, avatar_url')
-          .in('id', rankingUserIds)
-      : { data: [] }
+    const { data: rankingProfiles } = await supabase
+    .from('profiles')
+    .select('id, name, username, avatar_url, role, is_system')
 
-  const listaProfiles = (rankingProfiles ?? []) as any[]
+  const listaProfiles = ((rankingProfiles ?? []) as any[]).filter(
+    (profile) =>
+      profile.is_system !== true &&
+      profile.name !== 'Administrador' &&
+      profile.username !== 'administrador'
+  )
 
   const profilesMap = new Map(
     listaProfiles.map((profile) => [profile.id, profile])
@@ -89,6 +90,10 @@ export default async function RankingPage() {
   const rankingMap = new Map<string, any>()
 
   pontosRanking.forEach((item) => {
+    const profile = profilesMap.get(item.user_id)
+
+    if (!profile) return
+
     const existing = rankingMap.get(item.user_id)
 
     if (existing) {
@@ -96,7 +101,7 @@ export default async function RankingPage() {
     } else {
       rankingMap.set(item.user_id, {
         userId: item.user_id,
-        user: profilesMap.get(item.user_id),
+        user: profile,
         points: item.points,
       })
     }
@@ -209,16 +214,16 @@ export default async function RankingPage() {
                 >
                   <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
 
-                  <div className={place === 1 ? 'scale-110' : ''}>
+                  <div className={`flex flex-col items-center justify-center w-full ${place === 1 ? 'scale-110' : ''}`}>
                     <div className="text-3xl mb-2">{medal}</div>
 
                     {item ? (
                       <>
                         <Avatar user={item.user} size={place === 1 ? 'h-16 w-16' : 'h-13 w-13'} />
 
-                        <p className="mt-3 text-white font-black text-sm line-clamp-1">
-                          {item.user?.name ?? 'Membro'}
-                        </p>
+                        <p className="mt-3 w-full text-center text-white font-black text-sm truncate">
+  {item.user?.name ?? 'Membro'}
+</p>
 
                         <p className="text-white/35 text-[11px] truncate max-w-full">
                           {item.user?.username ? `@${item.user.username}` : ''}

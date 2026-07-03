@@ -11,9 +11,14 @@ import {
   ChevronDown,
   Headphones,
   Sparkles,
-  CheckCircle2,
+    CheckCircle2,
+  Star,
 } from 'lucide-react'
-import { togglePalavraInteraction, adicionarComentario } from '@/lib/palavra/actions'
+import {
+  togglePalavraInteraction,
+  adicionarComentario,
+  togglePalavraFavorite,
+} from '@/lib/palavra/actions'
 import type { PalavraDodia } from '@/types'
 import { getInitials } from '@/lib/utils'
 
@@ -43,6 +48,8 @@ export default function PalavraHoje({
     devotional: palavra.user_devotional ?? false,
     devotionalCount: palavra.devotional_count ?? 0,
   })
+
+  const [favorite, setFavorite] = useState(Boolean((palavra as any).user_favorited))
 
   const responsible = palavra.responsible as
     | {
@@ -84,6 +91,19 @@ export default function PalavraHoje({
       }
     })
   }
+
+  function handleFavorite() {
+  const previous = favorite
+  setFavorite(!previous)
+
+  startTransition(async () => {
+    const result = await togglePalavraFavorite(palavra.id)
+
+    if (result?.error) {
+      setFavorite(previous)
+    }
+  })
+}
 
   async function handleComentario(e: React.FormEvent) {
     e.preventDefault()
@@ -129,15 +149,27 @@ export default function PalavraHoje({
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/20 bg-amber-400/10 px-3 py-1.5">
-              <Sparkles size={12} className="text-amber-200" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-100/80">
-                Hoje
-              </span>
-            </div>
+            <button
+  type="button"
+  onClick={handleFavorite}
+  disabled={isPending}
+  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-all active:scale-95 ${
+    favorite
+      ? 'border-amber-300/30 bg-amber-400/15 text-amber-200'
+      : 'border-white/10 bg-white/[0.04] text-white/35'
+  }`}
+>
+  <Star
+    size={12}
+    className={favorite ? 'fill-amber-200 text-amber-200' : ''}
+  />
+  <span className="text-[10px] font-black uppercase tracking-widest">
+    {favorite ? 'Salva' : 'Salvar'}
+  </span>
+</button>
           </div>
 
-          <div className="relative flex items-center gap-3 mb-5 rounded-[24px] border border-white/[0.07] bg-black/15 p-3">
+          <div className="flex items-center gap-3 mb-5">
             {responsible?.avatar_url ? (
               <img
                 src={responsible.avatar_url}
@@ -194,7 +226,7 @@ export default function PalavraHoje({
           )}
 
           {palavra.reflection && (
-            <div className="relative mt-4 rounded-[28px] border border-white/[0.08] bg-black/20 p-5 overflow-hidden">
+            <div className="mt-6 pt-5 border-t border-white/[0.06]">
               <div className="absolute left-0 top-6 bottom-6 w-[3px] rounded-full bg-brand-400/60" />
 
               <p className="text-[10px] font-black tracking-widest uppercase text-white/35 mb-3">
@@ -329,7 +361,7 @@ export default function PalavraHoje({
         </button>
       </section>
 
-      <section className="mx-4 mt-5 rounded-[30px] border border-white/[0.08] bg-white/[0.035] p-4 backdrop-blur-xl">
+      <section className="mx-4 mt-6">
         <button
           type="button"
           onClick={() => setComentariosVisiveis((v) => !v)}
@@ -339,7 +371,7 @@ export default function PalavraHoje({
             <MessageCircle size={15} className="text-brand-400" />
 
             <span className="text-[11px] font-black tracking-widest uppercase text-white/40">
-              Reflexões da comunidade
+              Comunidade
             </span>
           </div>
 

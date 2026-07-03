@@ -58,6 +58,14 @@ export default function HighlightViewer({
   const activeStory = stories[activeIndex]
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  useEffect(() => {
     setProgress(0)
   }, [activeStory?.id])
 
@@ -123,7 +131,7 @@ export default function HighlightViewer({
 
   if (!activeStory) {
     return (
-      <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center px-6 text-center">
+      <div className="fixed inset-0 z-[999999] bg-black flex flex-col items-center justify-center px-6 text-center">
         <button
           type="button"
           onClick={close}
@@ -132,9 +140,7 @@ export default function HighlightViewer({
           <X size={20} />
         </button>
 
-        <p className="text-white font-bold text-lg">
-          Destaque vazio
-        </p>
+        <p className="text-white font-bold text-lg">Destaque vazio</p>
 
         <p className="text-white/45 text-sm mt-2">
           Esse destaque não possui stories para exibir.
@@ -144,30 +150,30 @@ export default function HighlightViewer({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
+    <div className="fixed inset-0 z-[999999] bg-black flex items-center justify-center">
       <button
         type="button"
         onClick={close}
-        className="absolute top-5 right-5 z-50 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
+        className="absolute top-5 right-5 z-[1000000] w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"
       >
         <X size={20} />
       </button>
 
       {isOwnProfile && editHref && (
-  <Link
-    href={editHref}
-    className="absolute top-5 left-5 z-50 h-10 px-4 rounded-full bg-white/10 flex items-center justify-center gap-2 text-white text-sm font-semibold"
-  >
-    <Pencil size={16} />
-    Editar
-  </Link>
-)}
+        <Link
+          href={editHref}
+          className="absolute top-5 left-5 z-[1000000] h-10 px-4 rounded-full bg-white/10 flex items-center justify-center gap-2 text-white text-sm font-semibold"
+        >
+          <Pencil size={16} />
+          Editar
+        </Link>
+      )}
 
       <div
-        className="relative w-full max-w-[390px] aspect-[9/16] bg-black overflow-hidden rounded-none sm:rounded-[28px]"
+        className="relative w-full h-full max-w-[430px] sm:h-auto sm:max-w-[390px] sm:aspect-[9/16] bg-black overflow-hidden sm:rounded-[28px]"
         onPointerDown={(e) => {
           const target = e.target as HTMLElement
-          if (target.tagName === 'BUTTON') return
+          if (target.tagName === 'BUTTON' || target.tagName === 'A') return
           setPaused(true)
         }}
         onPointerUp={() => setPaused(false)}
@@ -211,9 +217,7 @@ export default function HighlightViewer({
           </div>
 
           <div>
-            <p className="text-sm font-bold text-white">
-              {title}
-            </p>
+            <p className="text-sm font-bold text-white">{title}</p>
             <p className="text-xs text-white/45">
               {timeAgo(activeStory.created_at)}
             </p>

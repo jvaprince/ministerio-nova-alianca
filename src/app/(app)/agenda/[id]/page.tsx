@@ -104,11 +104,21 @@ export default async function EventoPage({ params }: { params: { id: string } })
     .eq('event_id', evento.id)
 
   const { data: members } = await supabase
-    .from('profiles')
-    .select('id, name, username, avatar_url')
+  .from('profiles')
+  .select('id, name, username, avatar_url, is_system')
+  .neq('name', 'Administrador')
 
-  const listaRsvps = (rsvps ?? []) as any[]
-  const listaMembers = (members ?? []) as any[]
+  const listaRsvps = ((rsvps ?? []) as any[]).filter(
+  (rsvp) =>
+    rsvp.user?.name !== 'Administrador' &&
+    rsvp.user?.username !== 'administrador'
+)
+  const listaMembers = ((members ?? []) as any[]).filter(
+  (member) =>
+    member.is_system !== true &&
+    member.name !== 'Administrador' &&
+    member.username !== 'administrador'
+)
 
   const currentUserRsvp = listaRsvps.find((rsvp) => rsvp.user_id === user?.id)
 
