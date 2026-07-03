@@ -21,13 +21,15 @@ export default async function PalavraAutorPage({
 }) {
   const supabase = await createSupabaseServerClient()
 
-  const { data: author } = await supabase
-    .from('profiles')
-    .select('id, name, username, avatar_url, role')
-    .eq('id', params.id)
-    .single()
+  const { data: authorData } = await supabase
+  .from('profiles')
+  .select('id, name, username, avatar_url, role')
+  .eq('id', params.id)
+  .single()
 
-  if (!author) notFound()
+if (!authorData) notFound()
+
+const author = authorData as any
 
   const { data: palavras } = await supabase
     .from('palavra_do_dia')
