@@ -50,7 +50,7 @@ export default function BottomNav({
     pointer-events-auto relative mx-auto max-w-[430px] overflow-hidden
     rounded-[34px] border border-brand-300/20 bg-[#050816]/90
     backdrop-blur-xl
-    shadow-none
+    shadow-[0_10px_28px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]
     px-2 py-2 flex items-center justify-between
     pb-[calc(0.75rem+env(safe-area-inset-bottom))]
   "
