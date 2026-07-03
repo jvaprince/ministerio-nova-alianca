@@ -8,7 +8,7 @@ export async function responderEvento(
   eventId: string,
   status: 'going' | 'not_going'
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -39,7 +39,7 @@ export async function responderEvento(
 }
 
 export async function removerRespostaEvento(eventId: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },

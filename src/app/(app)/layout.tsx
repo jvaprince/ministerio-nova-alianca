@@ -9,11 +9,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, name, username, avatar_url, role')
-    .eq('id', user.id)
-    .single()
+  const { data } = await supabase
+  .from('profiles')
+  .select('id, name, username, avatar_url, role')
+  .eq('id', user.id)
+  .single()
+
+const profile = data as {
+  id: string
+  name: string | null
+  username: string | null
+  avatar_url: string | null
+  role: string | null
+} | null
 
   return (
   <ThemeProvider>

@@ -17,13 +17,17 @@ export default async function CriarPalavraPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
-  if (!['admin', 'leader'].includes(profile?.role ?? '')) redirect('/palavra')
+  const role = (profile as { role?: string } | null)?.role
+
+  if (!['admin', 'leader'].includes(role ?? '')) redirect('/palavra')
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -50,7 +54,7 @@ export default async function CriarPalavraPage() {
           </div>
         </div>
 
-        <form action={criarPalavra} className="px-4 pt-2 space-y-4">
+        <form action={criarPalavra as any} className="px-4 pt-2 space-y-4">
           <div>
             <label className="block text-[12px] font-black tracking-widest uppercase text-white/35 mb-2">
               Data *

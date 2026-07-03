@@ -10,6 +10,7 @@ import PalavraHoje from '@/components/palavra/PalavraHoje'
 import PalavraVazia from '@/components/palavra/PalavraVazia'
 import PalavraHojeLoading from '@/components/palavra/PalavraHojeLoading'
 import ComentariosSection from '@/components/palavra/ComentariosSection'
+import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = {
   title: 'Palavra do Dia — Ministério Nova Aliança',
@@ -50,17 +51,21 @@ export default async function PalavraPage({
   const targetDate = searchParams.data ?? getHojeBrasil()
 
   const supabase = await createSupabaseServerClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
-  const podeGerir = ['admin', 'leader'].includes(profile?.role ?? '')
+  const role = (profile as { role?: string } | null)?.role
+  const podeGerir = ['admin', 'leader'].includes(role ?? '')
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-8">
@@ -98,7 +103,11 @@ export default async function PalavraPage({
         </div>
 
         <Suspense fallback={<PalavraHojeLoading />}>
-          <PalavraContent date={targetDate} podeGerir={podeGerir} userId={user!.id} />
+          <PalavraContent
+            date={targetDate}
+            podeGerir={podeGerir}
+            userId={user.id}
+          />
         </Suspense>
       </div>
     </div>
@@ -114,11 +123,15 @@ async function PalavraContent({
   podeGerir: boolean
   userId: string
 }) {
-  const palavra = await getPalavraDodia(date)
+  const palavraResult = await getPalavraDodia(date)
+  const palavra = palavraResult as any
 
   if (!palavra) {
-    const ultimaPalavra = await getUltimaPalavraPublicada()
-    const responsavelHoje = await getResponsavelPalavra(date)
+    const ultimaPalavraResult = await getUltimaPalavraPublicada()
+    const responsavelHojeResult = await getResponsavelPalavra(date)
+
+    const ultimaPalavra = ultimaPalavraResult as any
+    const responsavelHoje = responsavelHojeResult as any
 
     return (
       <>

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import {
   getPalavraDodia,
@@ -33,9 +34,12 @@ function PremiumCard({
 
 export default async function InicioPage() {
   const supabase = await createSupabaseServerClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
 
   const hoje = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -48,12 +52,12 @@ export default async function InicioPage() {
     profileResult,
     palavra,
     ultimaPalavra,
-    responsavelHoje,
+    responsavelHojeResult,
     proximoEventoResult,
     ultimoPostResult,
     unreadNotificationsResult,
   ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user!.id).single(),
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
     getPalavraDodia(hoje),
     getUltimaPalavraPublicada(),
     getResponsavelPalavra(hoje),
@@ -83,25 +87,26 @@ export default async function InicioPage() {
     supabase
       .from('notifications')
       .select('id')
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .is('read_at', null),
   ])
 
-  const profile = profileResult.data
+  const profile = profileResult.data as any
+  const responsavelHoje = responsavelHojeResult as any
+  const proximoEvento = proximoEventoResult.data as any
+  const ultimoPost = ultimoPostResult.data as any
+
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
 
   const responsavelNome =
-  responsavelHoje?.pending_profile?.name ?? (responsavelHoje as any)?.user?.name
+    responsavelHoje?.pending_profile?.name ?? responsavelHoje?.user?.name
 
   const responsavelUserId =
-  responsavelHoje?.pending_profile?.linked_user_id ??
-  responsavelHoje?.user?.id
+    responsavelHoje?.pending_profile?.linked_user_id ?? responsavelHoje?.user?.id
 
-const souResponsavelHoje = responsavelUserId === user?.id
+  const souResponsavelHoje = responsavelUserId === user.id
   const palavraPendenteHoje = !palavra
-  const proximoEvento = proximoEventoResult.data
-  const ultimoPost = ultimoPostResult.data
   const unreadNotificationsCount = unreadNotificationsResult.data?.length ?? 0
 
   const { data: activeJourney } = await supabase
@@ -115,10 +120,13 @@ const souResponsavelHoje = responsavelUserId === user?.id
         total_days
       )
     `)
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .order('started_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  const jornadaAtiva = activeJourney as any
+  const jornadaInfo = jornadaAtiva?.journey as any
 
   function formatEventDate(date: string) {
     return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {
@@ -145,9 +153,10 @@ const souResponsavelHoje = responsavelUserId === user?.id
     `)
     .gte('created_at', inicioSemana.toISOString())
 
+  const pontosRanking = (rankingPoints ?? []) as any[]
   const rankingMap = new Map<string, any>()
 
-  rankingPoints?.forEach((item: any) => {
+  pontosRanking.forEach((item) => {
     const existing = rankingMap.get(item.user_id)
 
     if (existing) {
@@ -319,10 +328,10 @@ const souResponsavelHoje = responsavelUserId === user?.id
           </Link>
         </div>
 
-        {activeJourney?.journey && (
+        {jornadaInfo && (
           <div className="px-4 mb-5">
             <Link
-              href={`/biblia/jornada/${activeJourney.journey.slug}/plano`}
+              href={`/biblia/jornada/${jornadaInfo.slug}/plano`}
               className="block"
             >
               <PremiumCard className="p-5">
@@ -331,12 +340,11 @@ const souResponsavelHoje = responsavelUserId === user?.id
                 </p>
 
                 <p className="relative text-[19px] font-black text-white">
-                  {activeJourney.journey.title}
+                  {jornadaInfo.title}
                 </p>
 
                 <p className="relative text-[13px] text-white/50 mt-1">
-                  Dia {activeJourney.current_day} de{' '}
-                  {activeJourney.journey.total_days}
+                  Dia {jornadaAtiva.current_day} de {jornadaInfo.total_days}
                 </p>
 
                 <div className="relative mt-4 h-2 rounded-full bg-white/[0.08] overflow-hidden">
@@ -344,8 +352,7 @@ const souResponsavelHoje = responsavelUserId === user?.id
                     className="h-full rounded-full bg-brand-400 shadow-[0_0_18px_rgba(59,130,246,0.55)]"
                     style={{
                       width: `${Math.round(
-                        (activeJourney.completed_days /
-                          activeJourney.journey.total_days) *
+                        (jornadaAtiva.completed_days / jornadaInfo.total_days) *
                           100
                       )}%`,
                     }}
@@ -354,7 +361,7 @@ const souResponsavelHoje = responsavelUserId === user?.id
 
                 <div className="relative flex items-center justify-between mt-3">
                   <span className="text-[12px] text-white/45">
-                    🔥 {activeJourney.streak} dias
+                    🔥 {jornadaAtiva.streak} dias
                   </span>
 
                   <span className="text-[12px] text-brand-300 font-semibold">

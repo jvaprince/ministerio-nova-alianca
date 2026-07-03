@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { Calendar, Music, Play, Eye, Edit2 } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import BackButton from '@/components/ui/BackButton'
@@ -60,13 +60,16 @@ export default async function RepertorioPage({
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
-  const podeGerir = ['admin', 'leader'].includes(profile?.role ?? '')
+  const role = (profile as { role?: string } | null)?.role
+  const podeGerir = ['admin', 'leader'].includes(role ?? '')
 
   const { data: set } = await supabase
     .from('worship_sets')
@@ -96,11 +99,13 @@ export default async function RepertorioPage({
 
   if (!set) notFound()
 
-  const songs = [...(set.songs ?? [])].sort(
+  const repertorio = set as any
+
+  const songs = [...(repertorio.songs ?? [])].sort(
     (a: any, b: any) => (a.position ?? 0) - (b.position ?? 0)
   )
 
-  const date = set.event?.event_date ?? set.worship_date
+  const date = repertorio.event?.event_date ?? repertorio.worship_date
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] px-4 pt-10 pb-52">
@@ -123,12 +128,12 @@ export default async function RepertorioPage({
             </p>
 
             <h1 className="text-[30px] font-black text-white mt-2 tracking-tight leading-tight">
-              {set.title}
+              {repertorio.title}
             </h1>
 
-            {set.description && (
+            {repertorio.description && (
               <p className="text-white/75 text-sm mt-3 leading-relaxed">
-                {set.description}
+                {repertorio.description}
               </p>
             )}
 
@@ -136,8 +141,8 @@ export default async function RepertorioPage({
               <Calendar size={15} />
 
               <span>
-                {set.event?.title
-                  ? `${set.event.title} • ${formatDate(set.event.event_date)}`
+                {repertorio.event?.title
+                  ? `${repertorio.event.title} • ${formatDate(repertorio.event.event_date)}`
                   : formatDate(date)}
               </span>
             </div>
@@ -152,14 +157,14 @@ export default async function RepertorioPage({
         {podeGerir && (
           <div className="grid grid-cols-2 gap-2 mt-4">
             <Link
-              href={`/louvores/${set.id}/editar`}
+              href={`/louvores/${repertorio.id}/editar`}
               className="h-12 rounded-2xl border border-brand-300/20 bg-white/[0.04] text-white/75 font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             >
               <Edit2 size={16} />
               Editar
             </Link>
 
-            <form action={excluirRepertorio.bind(null, set.id)}>
+            <form action={excluirRepertorio.bind(null, repertorio.id) as any}>
               <button
                 type="submit"
                 className="w-full h-12 rounded-2xl border border-red-400/20 bg-red-500/10 text-red-400 font-bold transition-all active:scale-[0.98]"
@@ -188,7 +193,7 @@ export default async function RepertorioPage({
               const youtubeId = getYoutubeId(song.youtube_url)
 
               const currentView = song.views?.find(
-                (view: any) => view.user_id === user?.id
+                (view: any) => view.user_id === user.id
               )
 
               const userHasSeen = currentView?.status === 'seen'
@@ -246,7 +251,7 @@ export default async function RepertorioPage({
                     )}
 
                     <form
-                      action={alternarLouvorVisto.bind(null, song.id)}
+                      action={alternarLouvorVisto.bind(null, song.id) as any}
                       className="mt-4"
                     >
                       <button

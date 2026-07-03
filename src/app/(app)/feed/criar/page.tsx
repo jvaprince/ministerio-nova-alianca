@@ -37,7 +37,7 @@ export default async function CriarPostFeedPage({
 
       <div className="relative z-10">
         <div className="px-4 pt-12 pb-5 border-b border-white/[0.06]">
-          <BackButton href="/feed" label="Voltar para o feed" />
+          <BackButton href="/feed" />
 
           <p className="text-[11px] font-black tracking-[0.24em] uppercase text-white/35 mt-6">
             Feed da Igreja
@@ -48,7 +48,7 @@ export default async function CriarPostFeedPage({
           </h1>
         </div>
 
-        <form action={criarPostFeed} className="px-4 pt-5 space-y-4">
+        <form action={criarPostFeed as any} className="px-4 pt-5 space-y-4">
           <div>
             <label className="block text-[12px] font-semibold text-white/50 uppercase tracking-wider mb-2">
               Tipo de publicação

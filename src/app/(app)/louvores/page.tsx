@@ -48,7 +48,8 @@ export default async function LouvoresPage() {
     .eq('id', user!.id)
     .single()
 
-  const podeGerir = ['admin', 'leader'].includes(profile?.role ?? '')
+  const role = (profile as { role?: string } | null)?.role
+  const podeGerir = ['admin', 'leader'].includes(role ?? '')
 
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -74,17 +75,17 @@ export default async function LouvoresPage() {
     .order('worship_date', { ascending: false })
     .order('created_at', { ascending: false })
 
-  const upcomingSets =
-    sets?.filter((set: any) => {
-      const date = set.event?.event_date ?? set.worship_date
-      return date && date >= today
-    }) ?? []
+  const listaSets = (sets ?? []) as any[]
 
-  const pastSets =
-    sets?.filter((set: any) => {
-      const date = set.event?.event_date ?? set.worship_date
-      return !date || date < today
-    }) ?? []
+  const upcomingSets = listaSets.filter((set) => {
+    const date = set.event?.event_date ?? set.worship_date
+    return date && date >= today
+  })
+
+  const pastSets = listaSets.filter((set) => {
+    const date = set.event?.event_date ?? set.worship_date
+    return !date || date < today
+  })
 
   const nextSet = upcomingSets[0]
   const otherSets = [...upcomingSets.slice(1), ...pastSets]
@@ -144,10 +145,10 @@ export default async function LouvoresPage() {
                   </h2>
 
                   <p className="text-white/75 text-sm mt-3">
-  {nextSet.event?.title
-    ? `${nextSet.event.title} • ${formatDate(nextSet.event.event_date)}`
-    : formatDate(nextSet.worship_date)}
-</p>
+                    {nextSet.event?.title
+                      ? `${nextSet.event.title} • ${formatDate(nextSet.event.event_date)}`
+                      : formatDate(nextSet.worship_date)}
+                  </p>
 
                   <p className="text-white/75 text-sm mt-1">
                     {nextSet.songs?.length ?? 0} louvor

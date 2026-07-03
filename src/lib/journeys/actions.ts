@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation'
 export async function startJourney(formData: FormData) {
   const journeyId = String(formData.get('journey_id'))
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -41,7 +41,7 @@ export async function completeJourneyDay(
   journeyId: string,
   dayNumber: number
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -105,7 +105,7 @@ export async function undoJourneyDay(
   journeyId: string,
   dayNumber: number
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -127,12 +127,14 @@ export async function undoJourneyDay(
     .eq('journey_id', journeyId)
     .eq('reason', `Dia ${dayNumber} concluído`)
 
-  const { data: userJourney } = await supabase
+  const { data: userJourneyData } = await supabase
     .from('user_journeys')
     .select('completed_days, streak, total_points')
     .eq('user_id', user.id)
     .eq('journey_id', journeyId)
     .single()
+
+  const userJourney = userJourneyData as any
 
   await supabase
     .from('user_journeys')
@@ -150,13 +152,15 @@ export async function undoJourneyDay(
 }
 
 export async function grantAchievement(userId: string, code: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
-  const { data: achievement } = await supabase
+  const { data: achievementData } = await supabase
     .from('achievements')
     .select('id')
     .eq('code', code)
     .single()
+
+  const achievement = achievementData as any
 
   if (!achievement) return
 
@@ -167,7 +171,7 @@ export async function grantAchievement(userId: string, code: string) {
 }
 
 export async function completeJourneyDayWithReflection(formData: FormData) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -204,17 +208,21 @@ export async function completeJourneyDayWithReflection(formData: FormData) {
   const reward = await completeJourneyDay(journeyId, dayNumber)
 
   if (isShared && reflection) {
-    const { data: journey } = await supabase
+    const { data: journeyData } = await supabase
       .from('journeys')
       .select('title')
       .eq('id', journeyId)
       .single()
 
-    const { data: journeyDay } = await supabase
+    const journey = journeyData as any
+
+    const { data: journeyDayData } = await supabase
       .from('journey_days')
       .select('title')
       .eq('id', journeyDayId)
       .single()
+
+    const journeyDay = journeyDayData as any
 
     await supabase.from('feed_posts').insert({
       author_id: user.id,
@@ -232,11 +240,13 @@ export async function completeJourneyDayWithReflection(formData: FormData) {
   revalidatePath('/biblia')
   revalidatePath('/biblia/jornada')
 
-  const { data: journey } = await supabase
+  const { data: journeyData } = await supabase
     .from('journeys')
     .select('slug')
     .eq('id', journeyId)
     .single()
+
+  const journey = journeyData as any
 
   const rewardParams = new URLSearchParams({
     awarded: String(reward?.awarded ?? false),

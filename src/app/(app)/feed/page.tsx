@@ -46,75 +46,81 @@ export default async function FeedPage() {
     .eq('id', user.id)
     .single()
 
+  const perfilAtual = currentProfile as { role?: string } | null
+
   const { data: posts } = await supabase
-  .from('feed_posts')
-  .select(`
-    *,
-    author:profiles!inner (
-      id,
-      name,
-      username,
-      avatar_url,
-      role,
-      is_system
-    ),
-    likes:feed_likes (
-      user_id
-    ),
-    comments:feed_comments (
-      id,
-      content,
-      author_id,
-      created_at,
-      author:profiles (
+    .from('feed_posts')
+    .select(`
+      *,
+      author:profiles!inner (
         id,
         name,
         username,
-        avatar_url
+        avatar_url,
+        role,
+        is_system
+      ),
+      likes:feed_likes (
+        user_id
+      ),
+      comments:feed_comments (
+        id,
+        content,
+        author_id,
+        created_at,
+        author:profiles (
+          id,
+          name,
+          username,
+          avatar_url
+        )
       )
-    )
-  `)
-  .eq('author.is_system', false)
-  .order('created_at', { ascending: false })
+    `)
+    .eq('author.is_system', false)
+    .order('created_at', { ascending: false })
+
+  const listaPosts = (posts ?? []) as any[]
 
   const { data: stories } = await supabase
-  .from('feed_stories')
-  .select(`
-    id,
-    image_url,
-    video_url,
-    content,
-    created_at,
-    expires_at,
-    author:profiles!inner (
+    .from('feed_stories')
+    .select(`
       id,
-      name,
-      username,
-      avatar_url,
-      is_system
-    ),
-    views:feed_story_views (
-      user_id,
-      viewer:profiles (
+      image_url,
+      video_url,
+      content,
+      created_at,
+      expires_at,
+      author:profiles!inner (
         id,
         name,
         username,
-        avatar_url
+        avatar_url,
+        is_system
+      ),
+      views:feed_story_views (
+        user_id,
+        viewer:profiles (
+          id,
+          name,
+          username,
+          avatar_url
+        )
+      ),
+      likes:feed_story_likes (
+        user_id,
+        user:profiles (
+          id,
+          name,
+          username,
+          avatar_url
+        )
       )
-    ),
-    likes:feed_story_likes (
-      user_id,
-      user:profiles (
-        id,
-        name,
-        username,
-        avatar_url
-      )
-    )
-  `)
-  .eq('author.is_system', false)
-  .gt('expires_at', new Date().toISOString())
-  .order('created_at', { ascending: false })
+    `)
+    .eq('author.is_system', false)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+
+  const listaStories = (stories ?? []) as any[]
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-8 bg-[#050816]">
@@ -147,9 +153,9 @@ export default async function FeedPage() {
         <div className="px-4 space-y-4">
           <FeedPeopleSearch />
 
-          <FeedStories stories={stories ?? []} currentUserId={user.id} />
+          <FeedStories stories={listaStories} currentUserId={user.id} />
 
-          {!posts || posts.length === 0 ? (
+          {listaPosts.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-white/60 text-sm font-semibold">
                 Nenhuma publicação ainda.
@@ -159,7 +165,7 @@ export default async function FeedPage() {
               </p>
             </div>
           ) : (
-            posts.map((post: any) => (
+            listaPosts.map((post: any) => (
               <div
                 key={post.id}
                 className="relative overflow-hidden rounded-[28px] border border-brand-300/15 bg-white/[0.04] shadow-[0_0_24px_rgba(59,130,246,0.07),0_20px_60px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl"
@@ -252,9 +258,9 @@ export default async function FeedPage() {
 
                 <FeedComments
                   postId={post.id}
-                  comments={post.comments ?? []}
+                  comments={(post.comments ?? []) as any[]}
                   currentUserId={user.id}
-                  currentUserRole={currentProfile?.role}
+                  currentUserRole={perfilAtual?.role}
                 />
               </div>
             ))

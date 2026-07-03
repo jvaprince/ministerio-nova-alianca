@@ -38,15 +38,17 @@ export default async function SeguindoPage({
 
   const username = decodeURIComponent(params.username).replace('@', '')
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('id, username, name')
     .eq('username', username)
     .single()
 
-  if (!profile) notFound()
+  if (!profileData) notFound()
 
-  const { data: following } = await supabase
+  const profile = profileData as any
+
+  const { data: followingData } = await supabase
     .from('followers')
     .select(`
       following:profiles!followers_following_id_fkey (
@@ -59,7 +61,8 @@ export default async function SeguindoPage({
     .eq('follower_id', profile.id)
     .order('created_at', { ascending: false })
 
-  const hasFollowing = following && following.length > 0
+  const following = (followingData ?? []) as any[]
+  const hasFollowing = following.length > 0
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] px-4 pt-10 pb-8">

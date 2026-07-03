@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export async function criarFeedStory(formData: FormData) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -14,16 +14,13 @@ export async function criarFeedStory(formData: FormData) {
   if (!user) redirect('/login')
 
   const rawMedia = formData.get('media')
-const content = String(formData.get('content') ?? '').trim()
+  const content = String(formData.get('content') ?? '').trim()
 
-const media =
-  rawMedia instanceof File && rawMedia.size > 0
-    ? rawMedia
-    : null
+  const media = rawMedia instanceof File && rawMedia.size > 0 ? rawMedia : null
 
-if (!media && !content) {
-  redirect('/feed/stories/criar?erro=vazio')
-}
+  if (!media && !content) {
+    redirect('/feed/stories/criar?erro=vazio')
+  }
 
   let image_url: string | null = null
   let video_url: string | null = null
@@ -74,7 +71,7 @@ if (!media && !content) {
 }
 
 export async function excluirFeedStory(storyId: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -82,11 +79,13 @@ export async function excluirFeedStory(storyId: string) {
 
   if (!user) redirect('/login')
 
-  const { data: story } = await supabase
+  const { data: storyData } = await supabase
     .from('feed_stories')
     .select('id, author_id')
     .eq('id', storyId)
     .single()
+
+  const story = storyData as any
 
   if (!story) {
     throw new Error('Story não encontrado.')
@@ -109,7 +108,7 @@ export async function excluirFeedStory(storyId: string) {
 }
 
 export async function registrarVisualizacaoStory(storyId: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -117,17 +116,17 @@ export async function registrarVisualizacaoStory(storyId: string) {
 
   if (!user) return
 
-  const { data: story } = await supabase
+  const { data: storyData } = await supabase
     .from('feed_stories')
     .select('author_id')
     .eq('id', storyId)
     .single()
 
+  const story = storyData as any
+
   if (!story) return
 
-  if (story.author_id === user.id) {
-    return
-  }
+  if (story.author_id === user.id) return
 
   await supabase.from('feed_story_views').upsert(
     {
@@ -144,7 +143,7 @@ export async function registrarVisualizacaoStory(storyId: string) {
 }
 
 export async function toggleLikeStory(storyId: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -152,24 +151,26 @@ export async function toggleLikeStory(storyId: string) {
 
   if (!user) redirect('/login')
 
-  const { data: story } = await supabase
+  const { data: storyData } = await supabase
     .from('feed_stories')
     .select('author_id')
     .eq('id', storyId)
     .single()
 
+  const story = storyData as any
+
   if (!story) return
 
-  if (story.author_id === user.id) {
-    return
-  }
+  if (story.author_id === user.id) return
 
-  const { data: existingLike } = await supabase
+  const { data: existingLikeData } = await supabase
     .from('feed_story_likes')
     .select('id')
     .eq('story_id', storyId)
     .eq('user_id', user.id)
     .maybeSingle()
+
+  const existingLike = existingLikeData as any
 
   if (existingLike) {
     await supabase

@@ -6,7 +6,6 @@ import {
   History,
   PenLine,
   Compass,
-  Sprout,
 } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { OLD_TESTAMENT, NEW_TESTAMENT } from '@/lib/biblia'
@@ -49,6 +48,8 @@ export default async function BibliaPage() {
     .limit(1)
     .maybeSingle()
 
+  const ultimaLeitura = lastRead as any
+
   const { data: favorites } = await supabase
     .from('bible_favorites')
     .select('*')
@@ -56,12 +57,16 @@ export default async function BibliaPage() {
     .order('created_at', { ascending: false })
     .limit(5)
 
+  const listaFavoritos = (favorites ?? []) as any[]
+
   const { data: history } = await supabase
     .from('bible_reading_history')
     .select('*')
     .eq('user_id', user!.id)
     .order('last_read_at', { ascending: false })
     .limit(5)
+
+  const listaHistorico = (history ?? []) as any[]
 
   const { data: activeJourney } = await supabase
     .from('user_journeys')
@@ -79,6 +84,9 @@ export default async function BibliaPage() {
     .order('started_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  const jornadaAtiva = activeJourney as any
+  const jornadaInfo = jornadaAtiva?.journey as any
 
   const { data: lastReflection } = await supabase
     .from('journey_reflections')
@@ -98,10 +106,10 @@ export default async function BibliaPage() {
     .limit(1)
     .maybeSingle()
 
-  const progressPercent = activeJourney?.journey
-    ? Math.round(
-        (activeJourney.completed_days / activeJourney.journey.total_days) * 100
-      )
+  const ultimaReflexao = lastReflection as any
+
+  const progressPercent = jornadaInfo
+    ? Math.round((jornadaAtiva.completed_days / jornadaInfo.total_days) * 100)
     : 0
 
   return (
@@ -135,8 +143,8 @@ export default async function BibliaPage() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href={
-                lastRead
-                  ? `/biblia/${lastRead.book}/${lastRead.chapter}`
+                ultimaLeitura
+                  ? `/biblia/${ultimaLeitura.book}/${ultimaLeitura.chapter}`
                   : '/biblia/João/1'
               }
             >
@@ -148,7 +156,9 @@ export default async function BibliaPage() {
                 </p>
 
                 <p className="relative text-white font-bold text-lg mt-1">
-                  {lastRead ? `${lastRead.book} ${lastRead.chapter}` : 'João 1'}
+                  {ultimaLeitura
+                    ? `${ultimaLeitura.book} ${ultimaLeitura.chapter}`
+                    : 'João 1'}
                 </p>
 
                 <p className="relative text-white/30 text-[11px] mt-2">
@@ -156,23 +166,24 @@ export default async function BibliaPage() {
                 </p>
               </PremiumCard>
             </Link>
-              <Link href="/biblia/jornada">
-  <PremiumCard className="p-4 min-h-[150px]">
-    <Compass size={21} className="relative text-brand-400 mb-5" />
 
-    <p className="relative text-white/45 text-xs">
-      Jornadas
-    </p>
+            <Link href="/biblia/jornada">
+              <PremiumCard className="p-4 min-h-[150px]">
+                <Compass size={21} className="relative text-brand-400 mb-5" />
 
-    <p className="relative text-white font-bold text-lg mt-1">
-      Explorar planos
-    </p>
+                <p className="relative text-white/45 text-xs">
+                  Jornadas
+                </p>
 
-    <p className="relative text-white/30 text-[11px] mt-2">
-      Ver jornadas →
-    </p>
-  </PremiumCard>
-</Link>
+                <p className="relative text-white font-bold text-lg mt-1">
+                  Explorar planos
+                </p>
+
+                <p className="relative text-white/30 text-[11px] mt-2">
+                  Ver jornadas →
+                </p>
+              </PremiumCard>
+            </Link>
           </div>
 
           <Link href="/biblia/diario" className="block mt-3">
@@ -188,8 +199,8 @@ export default async function BibliaPage() {
                   </p>
 
                   <p className="text-white font-bold text-[15px] mt-1 line-clamp-2">
-                    {lastReflection?.reflection
-                      ? `“${lastReflection.reflection}”`
+                    {ultimaReflexao?.reflection
+                      ? `“${ultimaReflexao.reflection}”`
                       : 'Diário Espiritual'}
                   </p>
 
@@ -202,9 +213,9 @@ export default async function BibliaPage() {
           </Link>
         </section>
 
-        {activeJourney?.journey && (
+        {jornadaInfo && (
           <Link
-            href={`/biblia/jornada/${activeJourney.journey.slug}/plano`}
+            href={`/biblia/jornada/${jornadaInfo.slug}/plano`}
             className="relative block mb-6 rounded-[30px] overflow-hidden border border-brand-300/25 bg-gradient-to-br from-brand-500/90 via-brand-500/75 to-brand-700/90 p-5 shadow-[0_0_35px_rgba(59,130,246,0.18),0_20px_60px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)]"
           >
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent" />
@@ -217,12 +228,12 @@ export default async function BibliaPage() {
               </p>
 
               <h2 className="text-white text-xl font-black mt-2">
-                🌱 {activeJourney.journey.title}
+                🌱 {jornadaInfo.title}
               </h2>
 
               <p className="text-white/75 text-sm mt-3">
-                Dia {activeJourney.current_day} de {activeJourney.journey.total_days} •{' '}
-                {activeJourney.total_points} XP
+                Dia {jornadaAtiva.current_day} de {jornadaInfo.total_days} •{' '}
+                {jornadaAtiva.total_points} XP
               </p>
 
               <div className="mt-4 h-2.5 rounded-full bg-white/20 overflow-hidden">
@@ -255,11 +266,11 @@ export default async function BibliaPage() {
             </h2>
           </div>
 
-          {!favorites || favorites.length === 0 ? (
+          {listaFavoritos.length === 0 ? (
             <EmptyCard text="Nenhum versículo favorito ainda." />
           ) : (
             <div className="space-y-2">
-              {favorites.map((favorite: any) => (
+              {listaFavoritos.map((favorite: any) => (
                 <Link
                   key={favorite.id}
                   href={`/biblia/${favorite.book}/${favorite.chapter}`}
@@ -283,11 +294,11 @@ export default async function BibliaPage() {
             </h2>
           </div>
 
-          {!history || history.length === 0 ? (
+          {listaHistorico.length === 0 ? (
             <EmptyCard text="Nenhuma leitura registrada ainda." />
           ) : (
             <div className="space-y-2">
-              {history.map((item: any) => (
+              {listaHistorico.map((item: any) => (
                 <Link
                   key={item.id}
                   href={`/biblia/${item.book}/${item.chapter}`}

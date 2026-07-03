@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/lib/auth/actions'
 import { getInitials } from '@/lib/utils'
@@ -13,7 +14,6 @@ import {
   Archive,
   ChevronRight,
   Sparkles,
-  UserRound,
   ShieldCheck,
 } from 'lucide-react'
 
@@ -88,11 +88,15 @@ export default async function PerfilPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
+  if (!user) redirect('/login')
+
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
+
+  const profile = profileData as any
 
   const roleLabel: Record<string, string> = {
     admin: 'Administrador',
@@ -237,15 +241,15 @@ export default async function PerfilPage() {
           />
 
           {profile?.role === 'admin' && (
-  <MenuItem
-    href="/admin"
-    icon={<ShieldCheck size={18} />}
-    title="Administração"
-    description="Gerenciar o ministério"
-  />
-)}
+            <MenuItem
+              href="/admin"
+              icon={<ShieldCheck size={18} />}
+              title="Administração"
+              description="Gerenciar o ministério"
+            />
+          )}
 
-          <form action={signOut}>
+          <form action={signOut as any}>
             <button
               type="submit"
               className="w-full relative overflow-hidden rounded-[28px] border border-red-400/20 bg-red-500/10 p-4 shadow-[0_0_24px_rgba(239,68,68,0.06),0_20px_60px_rgba(0,0,0,0.16)] backdrop-blur-xl transition-all active:scale-[0.985]"

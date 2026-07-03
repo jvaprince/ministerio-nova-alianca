@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BookOpen, CheckCircle2, Flame, Trophy } from 'lucide-react'
-import { completeJourneyDay, undoJourneyDay } from '@/lib/journeys/actions'
+import { undoJourneyDay } from '@/lib/journeys/actions'
 import BackButton from '@/components/ui/BackButton'
 import PointsToast from '@/components/ui/PointsToast'
 
@@ -67,14 +67,18 @@ export default async function JourneyPlanPage({
 
   if (!journey) notFound()
 
+  const jornada = journey as any
+
   const { data: userJourney } = await supabase
     .from('user_journeys')
     .select('*')
     .eq('user_id', user.id)
-    .eq('journey_id', journey.id)
+    .eq('journey_id', jornada.id)
     .maybeSingle()
 
-  if (!userJourney) redirect(`/biblia/jornada/${journey.slug}`)
+  const jornadaUsuario = userJourney as any
+
+  if (!jornadaUsuario) redirect(`/biblia/jornada/${jornada.slug}`)
 
   const { data: days } = await supabase
     .from('journey_days')
@@ -92,36 +96,43 @@ export default async function JourneyPlanPage({
         verse_end
       )
     `)
-    .eq('journey_id', journey.id)
+    .eq('journey_id', jornada.id)
     .order('day_number', { ascending: true })
 
   const { data: progress } = await supabase
     .from('user_journey_progress')
     .select('day_number')
     .eq('user_id', user.id)
-    .eq('journey_id', journey.id)
+    .eq('journey_id', jornada.id)
 
-  const completedDays = new Set(progress?.map((p) => p.day_number) ?? [])
-  const currentDay = userJourney.current_day ?? 1
-  const percent = Math.round((userJourney.completed_days / journey.total_days) * 100)
+  const listaProgress = (progress ?? []) as any[]
+  const listaDays = (days ?? []) as any[]
+
+  const completedDays = new Set(listaProgress.map((p) => p.day_number))
+  const currentDay = jornadaUsuario.current_day ?? 1
+
+  const percent = Math.round(
+    (jornadaUsuario.completed_days / jornada.total_days) * 100
+  )
 
   const currentDayCompleted = completedDays.has(currentDay)
-  const currentDayData = days?.find((d) => d.day_number === currentDay)
+  const currentDayData = listaDays.find((d) => d.day_number === currentDay)
   const currentReading = currentDayData?.readings?.[0]
+
   const awarded = searchParams?.awarded === 'true'
-const rewardPoints = Number(searchParams?.points ?? 0)
-const rewardMessage = searchParams?.message
+  const rewardPoints = Number(searchParams?.points ?? 0)
+  const rewardMessage = searchParams?.message
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] px-4 pt-10 pb-52">
-
       {rewardMessage && (
-  <PointsToast
-    awarded={awarded}
-    points={rewardPoints}
-    message={rewardMessage}
-  />
-)}
+        <PointsToast
+          awarded={awarded}
+          points={rewardPoints}
+          message={rewardMessage}
+        />
+      )}
+
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute top-20 -left-24 h-72 w-72 rounded-full bg-brand-500/10 blur-3xl" />
         <div className="absolute top-[430px] -right-24 h-80 w-80 rounded-full bg-brand-400/10 blur-3xl" />
@@ -137,7 +148,7 @@ const rewardMessage = searchParams?.message
           </p>
 
           <h1 className="text-[32px] font-black text-white mt-2 tracking-tight leading-tight">
-            {journey.title}
+            {jornada.title}
           </h1>
         </header>
 
@@ -145,15 +156,13 @@ const rewardMessage = searchParams?.message
           <div className="relative flex items-center justify-between gap-4">
             <div>
               <p className="text-white/45 text-sm">Progresso</p>
-              <p className="text-white font-black text-2xl">
-                {percent}%
-              </p>
+              <p className="text-white font-black text-2xl">{percent}%</p>
             </div>
 
             <div className="text-right">
               <p className="text-white/45 text-sm">Dia atual</p>
               <p className="text-white font-black text-2xl">
-                {currentDay} de {journey.total_days}
+                {currentDay} de {jornada.total_days}
               </p>
             </div>
           </div>
@@ -168,25 +177,25 @@ const rewardMessage = searchParams?.message
           <div className="relative grid grid-cols-3 gap-2 mt-5">
             <div className="rounded-2xl bg-black/20 border border-white/[0.06] p-3">
               <BookOpen size={16} className="text-brand-400 mb-2" />
-              <p className="text-white font-bold">{userJourney.completed_days}</p>
+              <p className="text-white font-bold">{jornadaUsuario.completed_days}</p>
               <p className="text-white/35 text-xs">dias lidos</p>
             </div>
 
             <div className="rounded-2xl bg-black/20 border border-white/[0.06] p-3">
               <Flame size={16} className="text-brand-400 mb-2" />
-              <p className="text-white font-bold">{userJourney.streak}</p>
+              <p className="text-white font-bold">{jornadaUsuario.streak}</p>
               <p className="text-white/35 text-xs">sequência</p>
             </div>
 
             <div className="rounded-2xl bg-black/20 border border-white/[0.06] p-3">
               <Trophy size={16} className="text-brand-400 mb-2" />
-              <p className="text-white font-bold">{userJourney.total_points}</p>
+              <p className="text-white font-bold">{jornadaUsuario.total_points}</p>
               <p className="text-white/35 text-xs">pontos</p>
             </div>
           </div>
         </PremiumCard>
 
-        {userJourney.completed_days > 0 && (
+        {jornadaUsuario.completed_days > 0 && (
           <PremiumCard className="mt-5 border-emerald-400/20 bg-emerald-500/10 p-5">
             <p className="relative text-emerald-400 text-xs font-black uppercase tracking-widest">
               Última conquista
@@ -203,7 +212,7 @@ const rewardMessage = searchParams?.message
               </div>
 
               <div className="rounded-2xl bg-black/20 p-3 text-center">
-                <p className="text-white font-bold">{userJourney.streak}</p>
+                <p className="text-white font-bold">{jornadaUsuario.streak}</p>
                 <p className="text-white/35 text-xs">sequência</p>
               </div>
 
@@ -214,7 +223,7 @@ const rewardMessage = searchParams?.message
             </div>
 
             <form
-              action={undoJourneyDay.bind(null, journey.id, currentDay - 1)}
+              action={undoJourneyDay.bind(null, jornada.id, currentDay - 1)}
               className="relative mt-4"
             >
               <button
@@ -250,7 +259,7 @@ const rewardMessage = searchParams?.message
             </p>
 
             <Link
-              href={`/biblia/${currentReading.book}/${currentReading.chapter_start}?backToJourney=${journey.slug}`}
+              href={`/biblia/${currentReading.book}/${currentReading.chapter_start}?backToJourney=${jornada.slug}`}
               className="relative mt-5 h-12 rounded-2xl border border-brand-300/25 bg-brand-gradient flex items-center justify-center text-white font-bold shadow-[0_0_28px_rgba(59,130,246,0.18),0_18px_50px_rgba(0,0,0,0.25)] transition-all active:scale-[0.98]"
             >
               Continuar leitura
@@ -262,7 +271,7 @@ const rewardMessage = searchParams?.message
               </div>
             ) : (
               <Link
-                href={`/biblia/jornada/${journey.slug}/reflexao?day=${currentDay}`}
+                href={`/biblia/jornada/${jornada.slug}/reflexao?day=${currentDay}`}
                 className="relative mt-3 h-12 rounded-2xl bg-emerald-600 text-white font-bold flex items-center justify-center shadow-[0_0_22px_rgba(16,185,129,0.16)] transition-all active:scale-[0.98]"
               >
                 ✓ Concluir Dia
@@ -281,7 +290,7 @@ const rewardMessage = searchParams?.message
                   </h2>
 
                   <p className="text-white/35 text-xs mt-1">
-                    Ver todos os {journey.total_days} dias da jornada
+                    Ver todos os {jornada.total_days} dias da jornada
                   </p>
                 </div>
 
@@ -293,7 +302,7 @@ const rewardMessage = searchParams?.message
           </summary>
 
           <div className="space-y-2 mt-3">
-            {days?.map((day: any) => {
+            {listaDays.map((day: any) => {
               const reading = day.readings?.[0]
               const completed = completedDays.has(day.day_number)
               const isCurrent = day.day_number === currentDay
@@ -325,7 +334,10 @@ const rewardMessage = searchParams?.message
                     </div>
 
                     {completed && (
-                      <CheckCircle2 size={20} className="text-emerald-400 shrink-0" />
+                      <CheckCircle2
+                        size={20}
+                        className="text-emerald-400 shrink-0"
+                      />
                     )}
                   </div>
                 </div>

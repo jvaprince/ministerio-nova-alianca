@@ -33,25 +33,32 @@ export default async function EditarDestaquePage({
 
   const username = decodeURIComponent(params.username).replace('@', '')
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('id, username')
     .eq('username', username)
     .single()
 
-  if (!profile) notFound()
-  if (profile.id !== user.id) redirect(`/perfil/${profile.username}`)
+  if (!profileData) notFound()
 
-  const { data: highlight } = await supabase
+  const profile = profileData as any
+
+  if (profile.id !== user.id) {
+    redirect(`/perfil/${profile.username}`)
+  }
+
+  const { data: highlightData } = await supabase
     .from('story_highlights')
     .select('id, title, user_id')
     .eq('id', params.highlightId)
     .eq('user_id', user.id)
     .single()
 
-  if (!highlight) notFound()
+  if (!highlightData) notFound()
 
-  const { data: items } = await supabase
+  const highlight = highlightData as any
+
+  const { data: itemsData } = await supabase
     .from('story_highlight_items')
     .select(`
       id,
@@ -67,16 +74,21 @@ export default async function EditarDestaquePage({
     .eq('highlight_id', highlight.id)
     .order('created_at', { ascending: true })
 
-  const currentStoryIds = new Set(items?.map((item) => item.story_id) ?? [])
+  const items = (itemsData ?? []) as any[]
 
-  const { data: allStories } = await supabase
+  const currentStoryIds = new Set(items.map((item) => item.story_id))
+
+  const { data: allStoriesData } = await supabase
     .from('feed_stories')
     .select('id, image_url, video_url, content, created_at')
     .eq('author_id', user.id)
     .order('created_at', { ascending: false })
 
-  const availableStories =
-    allStories?.filter((story) => !currentStoryIds.has(story.id)) ?? []
+  const allStories = (allStoriesData ?? []) as any[]
+
+  const availableStories = allStories.filter(
+    (story) => !currentStoryIds.has(story.id)
+  )
 
   return (
     <div className="px-4 pt-12 pb-10">
@@ -125,7 +137,7 @@ export default async function EditarDestaquePage({
           Stories neste destaque
         </h2>
 
-        {!items || items.length === 0 ? (
+        {items.length === 0 ? (
           <div className="rounded-2xl bg-white/[0.04] border border-white/[0.07] p-4">
             <p className="text-sm text-white/45">
               Nenhum story neste destaque.
@@ -202,7 +214,7 @@ export default async function EditarDestaquePage({
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3">
-            {availableStories.map((story) => (
+            {availableStories.map((story: any) => (
               <form
                 key={story.id}
                 action={async () => {

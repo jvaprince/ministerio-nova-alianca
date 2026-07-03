@@ -9,6 +9,15 @@ export const metadata: Metadata = {
   title: 'Meus Stories — Ministério Nova Aliança',
 }
 
+type StoryItem = {
+  id: string
+  image_url: string | null
+  video_url: string | null
+  content: string | null
+  created_at: string
+  expires_at: string
+}
+
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('pt-BR', {
     day: 'numeric',
@@ -59,13 +68,15 @@ export default async function ArquivoStoriesPage() {
     .eq('author_id', user.id)
     .order('created_at', { ascending: false })
 
-  const activeStories =
-    stories?.filter((story) => new Date(story.expires_at).toISOString() > now) ??
-    []
+  const listaStories = (stories ?? []) as StoryItem[]
 
-  const archivedStories =
-    stories?.filter((story) => new Date(story.expires_at).toISOString() <= now) ??
-    []
+  const activeStories = listaStories.filter(
+    (story) => new Date(story.expires_at).toISOString() > now
+  )
+
+  const archivedStories = listaStories.filter(
+    (story) => new Date(story.expires_at).toISOString() <= now
+  )
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-8">
@@ -101,9 +112,9 @@ export default async function ArquivoStoriesPage() {
         </div>
 
         <div className="px-4">
-          <CreateHighlightForm stories={stories ?? []} />
+          <CreateHighlightForm stories={listaStories as any[]} />
 
-          {!stories || stories.length === 0 ? (
+          {listaStories.length === 0 ? (
             <PremiumCard className="mt-4 p-8 text-center">
               <Archive size={28} className="relative text-white/25 mx-auto mb-3" />
 
@@ -168,14 +179,7 @@ function StoryCard({
   story,
   active = false,
 }: {
-  story: {
-    id: string
-    image_url: string | null
-    video_url: string | null
-    content: string | null
-    created_at: string
-    expires_at: string
-  }
+  story: StoryItem
   active?: boolean
 }) {
   return (

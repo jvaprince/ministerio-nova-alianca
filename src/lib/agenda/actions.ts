@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { notificarTodosMembros } from '@/lib/notifications/actions'
 
 export async function criarEvento(formData: FormData): Promise<void> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -105,7 +105,7 @@ export async function criarEvento(formData: FormData): Promise<void> {
 }
 
 export async function editarEvento(id: string, formData: FormData): Promise<void> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -146,16 +146,12 @@ export async function editarEvento(id: string, formData: FormData): Promise<void
   const event_type = formData.get('event_type') as string
   const cover = formData.get('cover') as File | null
 
-  if (!title || !event_date || !event_type) {
-    return
-  }
+  if (!title || !event_date || !event_type) return
 
   let cover_url: string | null = null
 
   if (cover && cover.size > 0) {
-    if (!cover.type.startsWith('image/')) {
-      return
-    }
+    if (!cover.type.startsWith('image/')) return
 
     const ext = cover.name.split('.').pop() ?? 'jpg'
     const path = `${user.id}/event_${Date.now()}.${ext}`
@@ -188,9 +184,7 @@ export async function editarEvento(id: string, formData: FormData): Promise<void
     event_type,
   }
 
-  if (cover_url) {
-    updateData.cover_url = cover_url
-  }
+  if (cover_url) updateData.cover_url = cover_url
 
   const { error } = await supabase
     .from('events')
@@ -211,7 +205,7 @@ export async function editarEvento(id: string, formData: FormData): Promise<void
 }
 
 export async function excluirEvento(formData: FormData): Promise<void> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },

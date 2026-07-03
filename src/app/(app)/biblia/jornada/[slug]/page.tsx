@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { startJourney } from '@/lib/journeys/actions'
 import { BookOpen, Clock, Flame, Sparkles, CheckCircle2 } from 'lucide-react'
 import BackButton from '@/components/ui/BackButton'
+import { notFound, redirect } from 'next/navigation'
 
 function PremiumCard({
   children,
@@ -34,6 +34,8 @@ export default async function JourneyDetailsPage({
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: journey } = await supabase
     .from('journeys')
     .select('*')
@@ -41,6 +43,8 @@ export default async function JourneyDetailsPage({
     .single()
 
   if (!journey) notFound()
+
+    const jornada = journey as any
 
   const { data: firstDays } = await supabase
     .from('journey_days')
@@ -56,15 +60,15 @@ export default async function JourneyDetailsPage({
         chapter_end
       )
     `)
-    .eq('journey_id', journey.id)
+    .eq('journey_id', jornada.id)
     .order('day_number', { ascending: true })
     .limit(5)
 
   const { data: userJourney } = await supabase
     .from('user_journeys')
     .select('*')
-    .eq('user_id', user?.id)
-    .eq('journey_id', journey.id)
+    .eq('user_id', user.id)
+    .eq('journey_id', jornada.id)
     .maybeSingle()
 
   return (
@@ -89,11 +93,11 @@ export default async function JourneyDetailsPage({
             </p>
 
             <h1 className="text-[32px] font-black text-white mt-2 tracking-tight leading-tight">
-              {journey.title}
+              {jornada.title}
             </h1>
 
             <p className="text-white/75 mt-3 leading-relaxed">
-              {journey.description}
+              {jornada.description}
             </p>
           </div>
         </section>
@@ -101,7 +105,7 @@ export default async function JourneyDetailsPage({
         <div className="grid grid-cols-3 gap-2 mt-4">
           <PremiumCard className="p-3">
             <Clock size={17} className="relative text-brand-400 mb-2" />
-            <p className="relative text-white font-black">{journey.total_days}</p>
+            <p className="relative text-white font-black">{jornada.total_days}</p>
             <p className="relative text-white/35 text-xs">dias</p>
           </PremiumCard>
 
@@ -113,7 +117,7 @@ export default async function JourneyDetailsPage({
 
           <PremiumCard className="p-3">
             <Flame size={17} className="relative text-brand-400 mb-2" />
-            <p className="relative text-white font-black">Nível {journey.level}</p>
+            <p className="relative text-white font-black">Nível {jornada.level}</p>
             <p className="relative text-white/35 text-xs">início</p>
           </PremiumCard>
         </div>
@@ -184,8 +188,8 @@ export default async function JourneyDetailsPage({
         <div className="mt-8">
           {!userJourney ? (
             <form action={startJourney}>
-              <input type="hidden" name="journey_id" value={journey.id} />
-              <input type="hidden" name="slug" value={journey.slug} />
+              <input type="hidden" name="journey_id" value={jornada.id} />
+              <input type="hidden" name="slug" value={jornada.slug} />
 
               <button
                 type="submit"
@@ -196,7 +200,7 @@ export default async function JourneyDetailsPage({
             </form>
           ) : (
             <Link
-              href={`/biblia/jornada/${journey.slug}/plano`}
+              href={`/biblia/jornada/${jornada.slug}/plano`}
               className="w-full h-14 rounded-2xl border border-brand-300/25 bg-brand-gradient text-white font-bold flex items-center justify-center gap-2 shadow-[0_0_28px_rgba(59,130,246,0.18),0_18px_50px_rgba(0,0,0,0.25)] transition-all active:scale-[0.98]"
             >
               <Sparkles size={18} />

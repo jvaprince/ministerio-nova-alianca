@@ -48,6 +48,8 @@ export default async function JourneyReflectionPage({
 
   if (!journey) notFound()
 
+  const jornada = journey as any
+
   const { data: journeyDay } = await supabase
     .from('journey_days')
     .select(`
@@ -64,11 +66,13 @@ export default async function JourneyReflectionPage({
         verse_end
       )
     `)
-    .eq('journey_id', journey.id)
+    .eq('journey_id', jornada.id)
     .eq('day_number', dayNumber)
     .single()
 
   if (!journeyDay) notFound()
+
+  const diaJornada = journeyDay as any
 
   const { data: devotional } = await supabase
     .from('journey_day_devotionals')
@@ -78,25 +82,31 @@ export default async function JourneyReflectionPage({
       reflection_question_2,
       reflection_question_3
     `)
-    .eq('journey_day_id', journeyDay.id)
+    .eq('journey_day_id', diaJornada.id)
     .maybeSingle()
+
+  const devocional = devotional as any
 
   const { data: quiz } = await supabase
     .from('journey_day_quizzes')
     .select('*')
-    .eq('journey_day_id', journeyDay.id)
+    .eq('journey_day_id', diaJornada.id)
     .maybeSingle()
 
-  const { data: userAnswer } = quiz
+  const quizAtual = quiz as any
+
+  const { data: userAnswer } = quizAtual
     ? await supabase
         .from('user_quiz_answers')
         .select('*')
         .eq('user_id', user.id)
-        .eq('quiz_id', quiz.id)
+        .eq('quiz_id', quizAtual.id)
         .maybeSingle()
     : { data: null }
 
-  const reading = journeyDay.readings?.[0]
+  const respostaUsuario = userAnswer as any
+
+  const reading = diaJornada.readings?.[0]
 
   function formatReading(reading: any) {
     if (!reading) return ''
@@ -121,7 +131,7 @@ export default async function JourneyReflectionPage({
       </div>
 
       <div className="relative z-10">
-        <BackButton href={`/biblia/jornada/${journey.slug}/plano`} />
+        <BackButton href={`/biblia/jornada/${jornada.slug}/plano`} />
 
         <header className="mt-4">
           <p className="text-brand-400 text-[11px] uppercase tracking-[0.28em] font-black">
@@ -134,12 +144,10 @@ export default async function JourneyReflectionPage({
         </header>
 
         <PremiumCard className="mt-5 p-5">
-          <p className="relative text-white/45 text-sm">
-            {journey.title}
-          </p>
+          <p className="relative text-white/45 text-sm">{jornada.title}</p>
 
           <h2 className="relative text-white font-black text-xl mt-1">
-            Dia {journeyDay.day_number} — {journeyDay.title}
+            Dia {diaJornada.day_number} — {diaJornada.title}
           </h2>
 
           {reading && (
@@ -153,24 +161,24 @@ export default async function JourneyReflectionPage({
           </p>
         </PremiumCard>
 
-        {devotional && (
+        {devocional && (
           <PremiumCard className="mt-5 border-brand-300/20 bg-brand-500/10 p-5">
             <p className="relative text-brand-400 text-xs uppercase tracking-widest font-black">
               Entendendo a Palavra
             </p>
 
             <p className="relative text-white/75 text-sm leading-relaxed mt-3">
-              {devotional.summary}
+              {devocional.summary}
             </p>
           </PremiumCard>
         )}
 
         <form action={completeJourneyDayWithReflection} className="mt-5 space-y-5">
-          <input type="hidden" name="journey_id" value={journey.id} />
-          <input type="hidden" name="journey_day_id" value={journeyDay.id} />
-          <input type="hidden" name="day_number" value={journeyDay.day_number} />
+          <input type="hidden" name="journey_id" value={jornada.id} />
+          <input type="hidden" name="journey_day_id" value={diaJornada.id} />
+          <input type="hidden" name="day_number" value={diaJornada.day_number} />
 
-          {quiz && (
+          {quizAtual && (
             <details className="group">
               <summary className="cursor-pointer list-none">
                 <PremiumCard className="p-5">
@@ -188,15 +196,15 @@ export default async function JourneyReflectionPage({
 
               <PremiumCard className="mt-3 p-5">
                 <h3 className="relative text-white font-bold">
-                  {quiz.question}
+                  {quizAtual.question}
                 </h3>
 
                 <div className="relative mt-4 space-y-2">
                   {[
-                    ['a', quiz.option_a],
-                    ['b', quiz.option_b],
-                    ['c', quiz.option_c],
-                    ['d', quiz.option_d],
+                    ['a', quizAtual.option_a],
+                    ['b', quizAtual.option_b],
+                    ['c', quizAtual.option_c],
+                    ['d', quizAtual.option_d],
                   ]
                     .filter(([, option]) => option)
                     .map(([value, option]) => (
@@ -205,55 +213,53 @@ export default async function JourneyReflectionPage({
                         className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-brand-300/10 p-3 cursor-pointer transition-all active:scale-[0.98]"
                       >
                         <input
-  type="radio"
-  name="quiz_answer"
-  value={value}
-  className="accent-blue-500"
-  disabled={!!userAnswer}
-/>
+                          type="radio"
+                          name="quiz_answer"
+                          value={value}
+                          className="accent-blue-500"
+                          disabled={!!respostaUsuario}
+                        />
 
-                        <span className="text-white/80 text-sm">
-                          {option}
-                        </span>
+                        <span className="text-white/80 text-sm">{option}</span>
                       </label>
                     ))}
                 </div>
 
-                {!userAnswer && (
-  <>
-    <input type="hidden" name="quiz_id" value={quiz.id} />
+                {!respostaUsuario && (
+                  <>
+                    <input type="hidden" name="quiz_id" value={quizAtual.id} />
 
-    <button
-      type="submit"
-      formAction={submitQuiz}
-      className="w-full mt-4 h-11 rounded-2xl bg-brand-gradient text-white font-semibold"
-    >
-      Verificar resposta
-    </button>
-  </>
-)}
+                    <button
+                      type="submit"
+                      formAction={submitQuiz}
+                      className="w-full mt-4 h-11 rounded-2xl bg-brand-gradient text-white font-semibold"
+                    >
+                      Verificar resposta
+                    </button>
+                  </>
+                )}
 
                 <p className="relative mt-4 text-white/40 text-xs">
                   Responda apenas se desejar reforçar o aprendizado.
                 </p>
 
-                {userAnswer && (
+                {respostaUsuario && (
                   <div
                     className={`relative mt-4 rounded-2xl p-4 ${
-                      userAnswer.is_correct
+                      respostaUsuario.is_correct
                         ? 'bg-emerald-500/10 border border-emerald-500/20'
                         : 'bg-red-500/10 border border-red-500/20'
                     }`}
                   >
                     <p className="text-white font-bold">
-                      {userAnswer.is_correct
+                      {respostaUsuario.is_correct
                         ? '✅ Correto!'
                         : '❌ Resposta incorreta'}
                     </p>
 
-                    {quiz.explanation && (
+                    {quizAtual.explanation && (
                       <p className="text-white/70 text-sm mt-2">
-                        {quiz.explanation}
+                        {quizAtual.explanation}
                       </p>
                     )}
                   </div>
@@ -267,7 +273,7 @@ export default async function JourneyReflectionPage({
               Sua reflexão
             </label>
 
-            {devotional && (
+            {devocional && (
               <PremiumCard className="mb-3 border-brand-300/20 bg-brand-500/10 p-4">
                 <p className="relative text-brand-400 text-xs uppercase tracking-widest font-black">
                   Para refletir
@@ -275,9 +281,9 @@ export default async function JourneyReflectionPage({
 
                 <div className="relative mt-2 space-y-2">
                   {[
-                    devotional.reflection_question_1,
-                    devotional.reflection_question_2,
-                    devotional.reflection_question_3,
+                    devocional.reflection_question_1,
+                    devocional.reflection_question_2,
+                    devocional.reflection_question_3,
                   ]
                     .filter(Boolean)
                     .map((question, index) => (

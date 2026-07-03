@@ -3,8 +3,6 @@ import Link from 'next/link'
 import {
   Trophy,
   Crown,
-  Medal,
-  Flame,
   Clock3,
   Sparkles,
   ChevronRight,
@@ -68,8 +66,10 @@ export default async function RankingPage() {
     .select('user_id, points')
     .gte('created_at', inicioSemana.toISOString())
 
+  const pontosRanking = (rankingPoints ?? []) as any[]
+
   const rankingUserIds = Array.from(
-    new Set(rankingPoints?.map((item) => item.user_id) ?? [])
+    new Set(pontosRanking.map((item) => item.user_id))
   )
 
   const { data: rankingProfiles } =
@@ -80,13 +80,15 @@ export default async function RankingPage() {
           .in('id', rankingUserIds)
       : { data: [] }
 
+  const listaProfiles = (rankingProfiles ?? []) as any[]
+
   const profilesMap = new Map(
-    rankingProfiles?.map((profile) => [profile.id, profile]) ?? []
+    listaProfiles.map((profile) => [profile.id, profile])
   )
 
   const rankingMap = new Map<string, any>()
 
-  rankingPoints?.forEach((item: any) => {
+  pontosRanking.forEach((item) => {
     const existing = rankingMap.get(item.user_id)
 
     if (existing) {

@@ -25,24 +25,28 @@ export default async function HighlightPage({
 
   const username = decodeURIComponent(params.username).replace('@', '')
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('id, name, username, avatar_url')
     .eq('username', username)
     .single()
 
-  if (!profile) notFound()
+  if (!profileData) notFound()
 
-  const { data: highlight } = await supabase
+  const profile = profileData as any
+
+  const { data: highlightData } = await supabase
     .from('story_highlights')
     .select('id, title, user_id')
     .eq('id', params.highlightId)
     .eq('user_id', profile.id)
     .single()
 
-  if (!highlight) notFound()
+  if (!highlightData) notFound()
 
-  const { data: items } = await supabase
+  const highlight = highlightData as any
+
+  const { data: itemsData } = await supabase
     .from('story_highlight_items')
     .select(`
       id,
@@ -59,24 +63,25 @@ export default async function HighlightPage({
     .eq('highlight_id', highlight.id)
     .order('created_at', { ascending: true })
 
-  const stories =
-    items
-      ?.map((item: any) => item.story)
-      .filter(Boolean)
-      .map((story: any) => ({
-        ...story,
-        author: profile,
-      })) ?? []
+  const items = (itemsData ?? []) as any[]
 
-      const isOwnProfile = profile.id === user.id
+  const stories = items
+    .map((item) => item.story)
+    .filter(Boolean)
+    .map((story) => ({
+      ...story,
+      author: profile,
+    }))
+
+  const isOwnProfile = profile.id === user.id
 
   return (
     <HighlightViewer
-  title={highlight.title}
-  username={profile.username}
-  stories={stories}
-  isOwnProfile={profile.id === user.id}
-  editHref={`/perfil/${profile.username}/destaques/${highlight.id}/editar`}
-/>
+      title={highlight.title}
+      username={profile.username}
+      stories={stories}
+      isOwnProfile={isOwnProfile}
+      editHref={`/perfil/${profile.username}/destaques/${highlight.id}/editar`}
+    />
   )
 }

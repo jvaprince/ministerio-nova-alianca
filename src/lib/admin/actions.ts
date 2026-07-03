@@ -13,15 +13,17 @@ async function assertAdmin() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
+  const profile = profileData as { role?: string } | null
+
   if (profile?.role !== 'admin') redirect('/inicio')
 
-  return supabase
+  return supabase as any
 }
 
 export async function atualizarCargoMembro(formData: FormData) {
@@ -32,10 +34,7 @@ export async function atualizarCargoMembro(formData: FormData) {
 
   if (!userId || !['admin', 'leader', 'member'].includes(role)) return
 
-  await supabase
-    .from('profiles')
-    .update({ role })
-    .eq('id', userId)
+  await supabase.from('profiles').update({ role }).eq('id', userId)
 
   revalidatePath('/admin/membros')
 }
@@ -48,10 +47,7 @@ export async function atualizarCargoConvite(formData: FormData) {
 
   if (!pendingId || !['admin', 'leader', 'member'].includes(role)) return
 
-  await supabase
-    .from('pending_profiles')
-    .update({ role })
-    .eq('id', pendingId)
+  await supabase.from('pending_profiles').update({ role }).eq('id', pendingId)
 
   revalidatePath('/admin/membros')
 }
@@ -64,13 +60,11 @@ export async function criarConvite(formData: FormData) {
 
   if (!name || !['admin', 'leader', 'member'].includes(role)) return
 
-  await supabase
-    .from('pending_profiles')
-    .insert({
-      name,
-      role,
-      is_linked: false,
-    })
+  await supabase.from('pending_profiles').insert({
+    name,
+    role,
+    is_linked: false,
+  })
 
   revalidatePath('/admin/membros')
 }
@@ -98,10 +92,7 @@ export async function excluirPostAdmin(formData: FormData) {
 
   if (!postId) return
 
-  await supabase
-    .from('feed_posts')
-    .delete()
-    .eq('id', postId)
+  await supabase.from('feed_posts').delete().eq('id', postId)
 
   revalidatePath('/admin/moderacao')
   revalidatePath('/feed')
@@ -114,10 +105,7 @@ export async function excluirEventoAdmin(formData: FormData) {
 
   if (!eventId) return
 
-  await supabase
-    .from('events')
-    .delete()
-    .eq('id', eventId)
+  await supabase.from('events').delete().eq('id', eventId)
 
   revalidatePath('/admin/agenda')
   revalidatePath('/agenda')
@@ -130,10 +118,7 @@ export async function excluirPalavraAdmin(formData: FormData) {
 
   if (!palavraId) return
 
-  await supabase
-    .from('daily_words')
-    .delete()
-    .eq('id', palavraId)
+  await supabase.from('daily_words').delete().eq('id', palavraId)
 
   revalidatePath('/admin/palavra')
   revalidatePath('/palavra')
@@ -151,17 +136,15 @@ export async function criarConquistaAdmin(formData: FormData) {
 
   if (!title || !code || !description) return
 
-  await supabase
-    .from('achievements')
-    .insert({
-      title,
-      code,
-      icon: icon || '🏆',
-      description,
-      rarity,
-      is_super: isSuper,
-      visibility: 'public',
-    })
+  await supabase.from('achievements').insert({
+    title,
+    code,
+    icon: icon || '🏆',
+    description,
+    rarity,
+    is_super: isSuper,
+    visibility: 'public',
+  })
 
   revalidatePath('/admin/conquistas')
   revalidatePath('/perfil/conquistas')
@@ -179,10 +162,7 @@ export async function excluirConquistaAdmin(formData: FormData) {
     .delete()
     .eq('achievement_id', achievementId)
 
-  await supabase
-    .from('achievements')
-    .delete()
-    .eq('id', achievementId)
+  await supabase.from('achievements').delete().eq('id', achievementId)
 
   revalidatePath('/admin/conquistas')
   revalidatePath('/perfil/conquistas')
@@ -210,20 +190,22 @@ export async function gerarEscalaPalavraAdmin(formData: FormData) {
     'Giovana',
   ]
 
-  const { data: pendingProfiles } = await supabase
+  const { data: pendingProfilesData } = await supabase
     .from('pending_profiles')
     .select('id, name, linked_user_id')
     .order('created_at', { ascending: true })
 
-  if (!pendingProfiles || pendingProfiles.length === 0) return
+  const pendingProfiles = (pendingProfilesData ?? []) as any[]
+
+  if (pendingProfiles.length === 0) return
 
   const profilesOrdenados = ordem
     .map((name) => pendingProfiles.find((p) => p.name === name))
     .filter(Boolean) as {
-      id: string
-      name: string
-      linked_user_id: string | null
-    }[]
+    id: string
+    name: string
+    linked_user_id: string | null
+  }[]
 
   if (profilesOrdenados.length === 0) return
 
@@ -260,11 +242,16 @@ export async function trocarResponsavelEscalaAdmin(formData: FormData) {
 
   if (!scaleId || !pendingProfileId) return
 
-  const { data: pendingProfile } = await supabase
+  const { data: pendingProfileData } = await supabase
     .from('pending_profiles')
     .select('id, linked_user_id')
     .eq('id', pendingProfileId)
     .single()
+
+  const pendingProfile = pendingProfileData as {
+    id: string
+    linked_user_id: string | null
+  } | null
 
   if (!pendingProfile) return
 

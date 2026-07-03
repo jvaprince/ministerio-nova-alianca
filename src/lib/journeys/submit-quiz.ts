@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function submitQuiz(formData: FormData) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -17,11 +17,13 @@ export async function submitQuiz(formData: FormData) {
 
   if (!quizId || !answer) return
 
-  const { data: quiz } = await supabase
+  const { data: quizData } = await supabase
     .from('journey_day_quizzes')
     .select('*')
     .eq('id', quizId)
     .single()
+
+  const quiz = quizData as any
 
   if (!quiz) return
 
@@ -48,6 +50,7 @@ export async function submitQuiz(formData: FormData) {
   })
 
   const { grantAchievement } = await import('@/lib/journeys/actions')
+
   await grantAchievement(user.id, 'first_quiz')
 
   revalidatePath('/', 'layout')

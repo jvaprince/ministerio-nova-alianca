@@ -13,7 +13,7 @@ export async function toggleBibleFavorite({
   chapter: number
   verse: number
 }) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -21,7 +21,7 @@ export async function toggleBibleFavorite({
 
   if (!user) redirect('/login')
 
-  const { data: existing } = await supabase
+  const { data: existingData } = await supabase
     .from('bible_favorites')
     .select('id')
     .eq('user_id', user.id)
@@ -30,20 +30,17 @@ export async function toggleBibleFavorite({
     .eq('verse', verse)
     .maybeSingle()
 
+  const existing = existingData as any
+
   if (existing) {
-    await supabase
-      .from('bible_favorites')
-      .delete()
-      .eq('id', existing.id)
+    await supabase.from('bible_favorites').delete().eq('id', existing.id)
   } else {
-    await supabase
-      .from('bible_favorites')
-      .insert({
-        user_id: user.id,
-        book,
-        chapter,
-        verse,
-      })
+    await supabase.from('bible_favorites').insert({
+      user_id: user.id,
+      book,
+      chapter,
+      verse,
+    })
   }
 
   revalidatePath('/biblia')
@@ -51,7 +48,7 @@ export async function toggleBibleFavorite({
 }
 
 export async function createBibleNote(formData: FormData) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -67,23 +64,25 @@ export async function createBibleNote(formData: FormData) {
 
   if (!book || !chapter || !verse || !content) return
 
-  await supabase
-    .from('bible_notes')
-    .insert({
-      user_id: user.id,
-      book,
-      chapter,
-      verse,
-      content,
-      is_public: isPublic,
-    })
+  await supabase.from('bible_notes').insert({
+    user_id: user.id,
+    book,
+    chapter,
+    verse,
+    content,
+    is_public: isPublic,
+  })
 
   revalidatePath('/biblia')
   revalidatePath(`/biblia/${encodeURIComponent(book)}/${chapter}`)
 }
 
-export async function deleteBibleNote(noteId: string, book: string, chapter: number) {
-  const supabase = await createSupabaseServerClient()
+export async function deleteBibleNote(
+  noteId: string,
+  book: string,
+  chapter: number
+) {
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -101,7 +100,7 @@ export async function deleteBibleNote(noteId: string, book: string, chapter: num
 }
 
 export async function markBibleChapterAsRead(book: string, chapter: number) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -109,16 +108,17 @@ export async function markBibleChapterAsRead(book: string, chapter: number) {
 
   if (!user) redirect('/login')
 
-  await supabase
-    .from('bible_reading_history')
-    .upsert({
+  await supabase.from('bible_reading_history').upsert(
+    {
       user_id: user.id,
       book,
       chapter,
       last_read_at: new Date().toISOString(),
-    }, {
+    },
+    {
       onConflict: 'user_id,book,chapter',
-    })
+    }
+  )
 
   revalidatePath('/biblia')
   revalidatePath(`/biblia/${encodeURIComponent(book)}/${chapter}`)
@@ -135,7 +135,7 @@ export async function toggleBibleHighlight({
   verse: number
   color?: string
 }) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -143,7 +143,7 @@ export async function toggleBibleHighlight({
 
   if (!user) redirect('/login')
 
-  const { data: existing, error: selectError } = await supabase
+  const { data: existingData, error: selectError } = await supabase
     .from('bible_highlights')
     .select('id, color')
     .eq('user_id', user.id)
@@ -156,6 +156,8 @@ export async function toggleBibleHighlight({
     console.error('ERRO AO BUSCAR GRIFO:', selectError)
     throw new Error(`Erro ao buscar grifo: ${selectError.message}`)
   }
+
+  const existing = existingData as any
 
   if (existing) {
     if (existing.color === color) {
@@ -209,7 +211,7 @@ export async function criarPostComVersiculo({
   verse: number
   text: string
 }) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },

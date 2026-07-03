@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { updateProfile } from '@/lib/auth/actions'
 import { User, AtSign, AlignLeft, Sparkles, Save } from 'lucide-react'
@@ -98,7 +99,7 @@ async function EditarPerfilForm({
   error?: string
 }) {
   return (
-    <form action={updateProfile} className="space-y-4">
+    <form action={updateProfile as any} className="space-y-4">
       {error && (
         <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl">
           <p className="text-[13px] text-red-400">{error}</p>
@@ -183,11 +184,15 @@ export default async function EditarPerfilPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
+  if (!user) redirect('/login')
+
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('name, username, bio, favorite_verse, favorite_verse_ref, avatar_url, cover_url')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
+
+  const profile = profileData as any
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-app text-app pb-52">

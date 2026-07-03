@@ -25,10 +25,9 @@ export async function criarNotificacao({
   metadata?: Record<string, any>
 }) {
   if (!userId) return
-
   if (actorId && actorId === userId) return
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   await supabase.from('notifications').insert({
     user_id: userId,
@@ -58,13 +57,13 @@ export async function notificarTodosMembros({
   href?: string | null
   metadata?: Record<string, any>
 }) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
-  const { data: members } = await supabase
-    .from('profiles')
-    .select('id')
+  const { data: membersData } = await supabase.from('profiles').select('id')
 
-  if (!members || members.length === 0) return
+  const members = (membersData ?? []) as any[]
+
+  if (members.length === 0) return
 
   for (const member of members) {
     await criarNotificacao({
@@ -81,7 +80,7 @@ export async function notificarTodosMembros({
 }
 
 export async function marcarNotificacaoComoLida(id: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   await supabase
     .from('notifications')
@@ -94,7 +93,7 @@ export async function marcarNotificacaoComoLida(id: string) {
 }
 
 export async function marcarTodasComoLidas() {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -114,7 +113,7 @@ export async function marcarTodasComoLidas() {
 }
 
 export async function criarNotificacaoResponsavelPalavraHoje() {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const hoje = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -123,7 +122,7 @@ export async function criarNotificacaoResponsavelPalavraHoje() {
     day: '2-digit',
   }).format(new Date())
 
-  const { data: escala } = await supabase
+  const { data: escalaData } = await supabase
     .from('palavra_scale')
     .select(`
       id,
@@ -138,20 +137,23 @@ export async function criarNotificacaoResponsavelPalavraHoje() {
     .eq('scheduled_date', hoje)
     .maybeSingle()
 
+  const escala = escalaData as any
+
   const responsibleUserId =
     escala?.pending_profile?.linked_user_id ?? escala?.user_id
 
   if (!escala || !responsibleUserId) return
-
   if (escala.notified) return
 
-  const { data: existing } = await supabase
+  const { data: existingData } = await supabase
     .from('notifications')
     .select('id')
     .eq('user_id', responsibleUserId)
     .eq('type', 'palavra_responsavel')
     .eq('metadata->>scheduled_date', hoje)
     .maybeSingle()
+
+  const existing = existingData as any
 
   if (existing) {
     await supabase
@@ -185,7 +187,7 @@ export async function criarNotificacaoResponsavelPalavraHoje() {
 }
 
 export async function criarLembretesDeEventos() {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const hoje = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -204,24 +206,24 @@ export async function criarLembretesDeEventos() {
     day: '2-digit',
   }).format(amanhaDate)
 
-  const { data: events } = await supabase
+  const { data: eventsData } = await supabase
     .from('events')
     .select('id, title, event_date, event_time, location')
     .in('event_date', [hoje, amanha])
 
-  if (!events || events.length === 0) return
+  const events = (eventsData ?? []) as any[]
 
-  const { data: members } = await supabase
-    .from('profiles')
-    .select('id')
+  if (events.length === 0) return
 
-  if (!members || members.length === 0) return
+  const { data: membersData } = await supabase.from('profiles').select('id')
+
+  const members = (membersData ?? []) as any[]
+
+  if (members.length === 0) return
 
   for (const event of events) {
     const isToday = event.event_date === hoje
-
     const type = isToday ? 'event_today' : 'event_tomorrow'
-
     const title = isToday ? 'Evento hoje' : 'Lembrete de evento'
 
     const message = isToday
@@ -232,7 +234,7 @@ export async function criarLembretesDeEventos() {
       const inicioHoje = `${hoje}T00:00:00-03:00`
       const fimHoje = `${hoje}T23:59:59-03:00`
 
-      const { data: existing } = await supabase
+      const { data: existingData } = await supabase
         .from('notifications')
         .select('id')
         .eq('user_id', member.id)
@@ -241,6 +243,8 @@ export async function criarLembretesDeEventos() {
         .gte('created_at', inicioHoje)
         .lte('created_at', fimHoje)
         .maybeSingle()
+
+      const existing = existingData as any
 
       if (existing) continue
 

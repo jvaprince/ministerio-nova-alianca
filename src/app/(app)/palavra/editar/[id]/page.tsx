@@ -20,22 +20,28 @@ export default async function EditarPalavraPage({
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
-  if (!['admin', 'leader'].includes(profile?.role ?? '')) redirect('/palavra')
+  const role = (profile as { role?: string } | null)?.role
 
-  const palavra = await getPalavraById(params.id)
+  if (!['admin', 'leader'].includes(role ?? '')) redirect('/palavra')
+
+  const palavraResult = await getPalavraById(params.id)
+  const palavra = palavraResult as any
+
   if (!palavra) redirect('/palavra')
 
-  if (palavra.responsible_id !== user!.id && profile?.role !== 'admin') {
+  if (palavra.responsible_id !== user.id && role !== 'admin') {
     redirect('/palavra')
   }
 
-  const editarComId = editarPalavra.bind(null, params.id)
+  const editarComId = editarPalavra.bind(null, params.id) as any
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-8">

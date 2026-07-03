@@ -3,12 +3,18 @@ import { getInitials, formatRelativeTime } from '@/lib/utils'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { Trash2 } from 'lucide-react'
 
-export default async function ComentariosSection({ palavraId }: { palavraId: string }) {
+export default async function ComentariosSection({
+  palavraId,
+}: {
+  palavraId: string
+}) {
   const supabase = await createSupabaseServerClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const { data: profile } = user
+  const { data: profileData } = user
     ? await supabase
         .from('profiles')
         .select('role')
@@ -16,7 +22,10 @@ export default async function ComentariosSection({ palavraId }: { palavraId: str
         .single()
     : { data: null }
 
-  const comentarios = await getComentariosPalavra(palavraId)
+  const profile = profileData as { role?: string } | null
+
+  const comentariosResult = await getComentariosPalavra(palavraId)
+  const comentarios = (comentariosResult ?? []) as any[]
 
   if (comentarios.length === 0) {
     return (
@@ -52,6 +61,7 @@ export default async function ComentariosSection({ palavraId }: { palavraId: str
                 <span className="text-[12px] font-semibold text-white">
                   {c.author?.name ?? 'Anônimo'}
                 </span>
+
                 <span className="text-[11px] text-white/30">
                   {formatRelativeTime(c.created_at)}
                 </span>
@@ -63,8 +73,9 @@ export default async function ComentariosSection({ palavraId }: { palavraId: str
             </div>
 
             {podeExcluir && (
-              <form action={excluirComentario}>
+              <form action={excluirComentario as any}>
                 <input type="hidden" name="commentId" value={c.id} />
+
                 <button
                   type="submit"
                   className="opacity-60 hover:opacity-100 text-white/25 hover:text-red-400 transition-colors p-1"

@@ -12,7 +12,7 @@ function getYoutubeId(url: string) {
 }
 
 async function getCurrentUserAndProfile() {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -20,11 +20,13 @@ async function getCurrentUserAndProfile() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  const profile = profileData as any
 
   return { supabase, user, profile }
 }
@@ -69,15 +71,15 @@ export async function criarRepertorio(formData: FormData) {
       }
     })
     .filter(Boolean) as {
-    title: string
-    youtube_url: string
-    description: string | null
-    position: number
-  }[]
+      title: string
+      youtube_url: string
+      description: string | null
+      position: number
+    }[]
 
   if (songs.length === 0) redirect('/louvores/criar?error=missing_song')
 
-  const { data: set, error } = await supabase
+  const { data: setData, error } = await supabase
     .from('worship_sets')
     .insert({
       title,
@@ -88,6 +90,8 @@ export async function criarRepertorio(formData: FormData) {
     })
     .select('id')
     .single()
+
+  const set = setData as any
 
   if (error || !set) {
     console.error('Erro ao criar repertório:', error)
@@ -107,20 +111,20 @@ export async function criarRepertorio(formData: FormData) {
   }
 
   await notificarTodosMembros({
-  actorId: user.id,
-  type: 'worship_set_created',
-  title: 'Novo repertório disponível',
-  message: `${title} — ${songs.length} louvor${songs.length === 1 ? '' : 'es'} preparado${songs.length === 1 ? '' : 's'}.`,
-  href: `/louvores/${set.id}`,
-  metadata: {
-    worship_set_id: set.id,
-    event_id: eventId || null,
-    worship_date: eventId ? null : worshipDate,
-  },
-})
+    actorId: user.id,
+    type: 'worship_set_created',
+    title: 'Novo repertório disponível',
+    message: `${title} — ${songs.length} louvor${songs.length === 1 ? '' : 'es'} preparado${songs.length === 1 ? '' : 's'}.`,
+    href: `/louvores/${set.id}`,
+    metadata: {
+      worship_set_id: set.id,
+      event_id: eventId || null,
+      worship_date: eventId ? null : worshipDate,
+    },
+  })
 
-revalidatePath('/louvores')
-redirect(`/louvores/${set.id}`)
+  revalidatePath('/louvores')
+  redirect(`/louvores/${set.id}`)
 }
 
 export async function editarRepertorio(setId: string, formData: FormData) {
@@ -163,13 +167,13 @@ export async function editarRepertorio(setId: string, formData: FormData) {
       }
     })
     .filter(Boolean) as {
-    id: string | null
-    set_id: string
-    title: string
-    youtube_url: string
-    description: string | null
-    position: number
-  }[]
+      id: string | null
+      set_id: string
+      title: string
+      youtube_url: string
+      description: string | null
+      position: number
+    }[]
 
   if (songs.length === 0) {
     redirect(`/louvores/${setId}/editar?error=missing_song`)
@@ -269,12 +273,14 @@ export async function excluirRepertorio(setId: string) {
 export async function alternarLouvorVisto(songId: string) {
   const { supabase, user } = await getCurrentUserAndProfile()
 
-  const { data: existing } = await supabase
+  const { data: existingData } = await supabase
     .from('worship_song_views')
     .select('id')
     .eq('song_id', songId)
     .eq('user_id', user.id)
     .maybeSingle()
+
+  const existing = existingData as any
 
   if (existing) {
     await supabase

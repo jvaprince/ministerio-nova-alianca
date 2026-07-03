@@ -81,13 +81,15 @@ export default async function ConquistasPage() {
 
   if (!user) redirect('/login')
 
-  const { data: allAchievements } = await supabase
+  const { data: allAchievementsData } = await supabase
     .from('achievements')
     .select('id, title, description, icon, code, is_super, rarity, visibility')
     .order('is_super', { ascending: false })
     .order('created_at', { ascending: true })
 
-  const { data: earnedAchievements } = await supabase
+  const allAchievements = (allAchievementsData ?? []) as any[]
+
+  const { data: earnedAchievementsData } = await supabase
     .from('user_achievements')
     .select(`
       earned_at,
@@ -104,22 +106,24 @@ export default async function ConquistasPage() {
     .eq('user_id', user.id)
     .order('earned_at', { ascending: false })
 
+  const earnedAchievements = (earnedAchievementsData ?? []) as any[]
+
   const earnedIds = new Set(
-    earnedAchievements?.map((item: any) => item.achievement?.id) ?? []
+    earnedAchievements.map((item) => item.achievement?.id)
   )
 
-  const total = allAchievements?.length ?? 0
-  const earned = earnedAchievements?.length ?? 0
+  const total = allAchievements.length
+  const earned = earnedAchievements.length
   const percent = total > 0 ? Math.round((earned / total) * 100) : 0
 
-  const superEarned =
-    earnedAchievements?.filter((item: any) => item.achievement?.is_super)
-      .length ?? 0
+  const superEarned = earnedAchievements.filter(
+    (item) => item.achievement?.is_super
+  ).length
 
-  const highlighted = earnedAchievements?.[0]
+  const highlighted = earnedAchievements[0] ?? null
 
   const nextAchievement =
-    allAchievements?.find((achievement: any) => !earnedIds.has(achievement.id)) ??
+    allAchievements.find((achievement) => !earnedIds.has(achievement.id)) ??
     null
 
   return (
@@ -266,10 +270,10 @@ export default async function ConquistasPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            {allAchievements?.map((achievement: any) => {
+            {allAchievements.map((achievement: any) => {
               const unlocked = earnedIds.has(achievement.id)
-              const earnedItem = earnedAchievements?.find(
-                (item: any) => item.achievement?.id === achievement.id
+              const earnedItem = earnedAchievements.find(
+                (item) => item.achievement?.id === achievement.id
               )
               const style = rarityStyle(achievement.rarity, achievement.is_super)
 

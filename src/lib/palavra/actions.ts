@@ -6,13 +6,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { PalavraDodia } from '@/types'
 import { criarNotificacao } from '@/lib/notifications/actions'
 
-// ─────────────────────────────────────────────
-// LEITURA
-// ─────────────────────────────────────────────
-
-/** Palavra do dia de hoje (ou data específica) */
 export async function getPalavraDodia(date?: string): Promise<PalavraDodia | null> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
   const { data: { user } } = await supabase.auth.getUser()
 
   const targetDate = date ?? new Date().toISOString().split('T')[0]
@@ -29,31 +24,32 @@ export async function getPalavraDodia(date?: string): Promise<PalavraDodia | nul
     .eq('is_published', true)
     .single()
 
-  if (!data) return null
+  const palavra = data as any
+  if (!palavra) return null
 
-  // Verificar interações do usuário atual
   if (user) {
-    const { data: interactions } = await supabase
+    const { data: interactionsData } = await supabase
       .from('palavra_interactions')
       .select('type')
-      .eq('palavra_id', data.id)
+      .eq('palavra_id', palavra.id)
       .eq('user_id', user.id)
 
-    const types = new Set(interactions?.map(i => i.type) ?? [])
+    const interactions = (interactionsData ?? []) as any[]
+    const types = new Set(interactions.map((i) => i.type))
+
     return {
-      ...data,
+      ...palavra,
       user_devotional: types.has('devotional'),
-      user_praying:    types.has('praying'),
-      user_liked:      types.has('like'),
+      user_praying: types.has('praying'),
+      user_liked: types.has('like'),
     } as PalavraDodia
   }
 
-  return data as PalavraDodia
+  return palavra as PalavraDodia
 }
 
-/** Última palavra publicada */
 export async function getUltimaPalavraPublicada(): Promise<PalavraDodia | null> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data } = await supabase
@@ -69,36 +65,37 @@ export async function getUltimaPalavraPublicada(): Promise<PalavraDodia | null> 
     .limit(1)
     .single()
 
-  if (!data) return null
+  const palavra = data as any
+  if (!palavra) return null
 
   if (user) {
-    const { data: interactions } = await supabase
+    const { data: interactionsData } = await supabase
       .from('palavra_interactions')
       .select('type')
-      .eq('palavra_id', data.id)
+      .eq('palavra_id', palavra.id)
       .eq('user_id', user.id)
 
-    const types = new Set(interactions?.map(i => i.type) ?? [])
+    const interactions = (interactionsData ?? []) as any[]
+    const types = new Set(interactions.map((i) => i.type))
 
     return {
-      ...data,
+      ...palavra,
       user_devotional: types.has('devotional'),
       user_liked: types.has('like'),
     } as PalavraDodia
   }
 
-  return data as PalavraDodia
+  return palavra as PalavraDodia
 }
 
-/** Lista histórico de palavras publicadas */
 export async function getPalavrasHistorico(page = 0, limit = 10) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
   const { data: { user } } = await supabase.auth.getUser()
 
   const from = page * limit
-  const to   = from + limit - 1
+  const to = from + limit - 1
 
-  const { data, count } = await supabase
+  const { data: palavrasData, count } = await supabase
     .from('palavra_do_dia')
     .select(`
       *,
@@ -111,40 +108,43 @@ export async function getPalavrasHistorico(page = 0, limit = 10) {
     .order('scheduled_date', { ascending: false })
     .range(from, to)
 
-  if (!data) return { palavras: [], total: 0 }
+  const palavras = (palavrasData ?? []) as any[]
 
-  // Enriquecer com interações do usuário (batch)
-  if (user && data.length > 0) {
-    const ids = data.map(p => p.id)
-    const { data: interactions } = await supabase
+  if (palavras.length === 0) return { palavras: [], total: 0 }
+
+  if (user) {
+    const ids = palavras.map((p) => p.id)
+
+    const { data: interactionsData } = await supabase
       .from('palavra_interactions')
       .select('palavra_id, type')
       .eq('user_id', user.id)
       .in('palavra_id', ids)
 
+    const interactions = (interactionsData ?? []) as any[]
     const interMap = new Map<string, Set<string>>()
-    interactions?.forEach(i => {
+
+    interactions.forEach((i) => {
       if (!interMap.has(i.palavra_id)) interMap.set(i.palavra_id, new Set())
       interMap.get(i.palavra_id)!.add(i.type)
     })
 
     return {
-      palavras: data.map(p => ({
+      palavras: palavras.map((p) => ({
         ...p,
         user_devotional: interMap.get(p.id)?.has('devotional') ?? false,
-        user_praying:    interMap.get(p.id)?.has('praying')    ?? false,
-        user_liked:      interMap.get(p.id)?.has('like')       ?? false,
+        user_praying: interMap.get(p.id)?.has('praying') ?? false,
+        user_liked: interMap.get(p.id)?.has('like') ?? false,
       })) as PalavraDodia[],
       total: count ?? 0,
     }
   }
 
-  return { palavras: data as PalavraDodia[], total: count ?? 0 }
+  return { palavras: palavras as PalavraDodia[], total: count ?? 0 }
 }
 
-/** Escala dos próximos 30 dias */
 export async function getEscala(days = 30) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const today = new Date().toISOString().split('T')[0]
   const future = new Date(Date.now() + days * 86400000).toISOString().split('T')[0]
@@ -152,24 +152,23 @@ export async function getEscala(days = 30) {
   const { data } = await supabase
     .from('palavra_scale')
     .select(`
-  *,
-  user:profiles!user_id (
-    id, name, username, avatar_url, role
-  ),
-  pending_profile:pending_profiles!pending_profile_id (
-    id, name, role, linked_user_id
-  )
-`)
+      *,
+      user:profiles!user_id (
+        id, name, username, avatar_url, role
+      ),
+      pending_profile:pending_profiles!pending_profile_id (
+        id, name, role, linked_user_id
+      )
+    `)
     .gte('scheduled_date', today)
     .lte('scheduled_date', future)
     .order('scheduled_date', { ascending: true })
 
-  return data ?? []
+  return (data ?? []) as any[]
 }
 
-/** Responsável da Palavra em uma data específica */
 export async function getResponsavelPalavraOLD(date: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const { data } = await supabase
     .from('palavra_scale')
@@ -185,12 +184,11 @@ export async function getResponsavelPalavraOLD(date: string) {
     .eq('scheduled_date', date)
     .single()
 
-  return data
+  return data as any
 }
 
-/** Responsável automático da Palavra */
 export async function getResponsavelPalavra(date: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const ordem = [
     'João Victor',
@@ -206,9 +204,7 @@ export async function getResponsavelPalavra(date: string) {
     'Giovana',
   ]
 
-  // Data em que a escala começou
   const inicioEscala = new Date('2026-07-01T12:00:00')
-
   const dataAtual = new Date(`${date}T12:00:00`)
 
   const diasPassados = Math.floor(
@@ -216,17 +212,10 @@ export async function getResponsavelPalavra(date: string) {
       (1000 * 60 * 60 * 24)
   )
 
-  const indice =
-    ((diasPassados % ordem.length) + ordem.length) %
-    ordem.length
-
+  const indice = ((diasPassados % ordem.length) + ordem.length) % ordem.length
   const nomeResponsavel = ordem[indice]
 
-  // --------------------------------------------------
-  // Verifica se existe override manual
-  // --------------------------------------------------
-
-  const { data: override } = await supabase
+  const { data: overrideData } = await supabase
     .from('palavra_overrides')
     .select(`
       *,
@@ -240,7 +229,8 @@ export async function getResponsavelPalavra(date: string) {
     .eq('target_date', date)
     .maybeSingle()
 
-  // Sem palavra hoje
+  const override = overrideData as any
+
   if (override?.action_type === 'skip_day') {
     return {
       skipped: true,
@@ -249,25 +239,15 @@ export async function getResponsavelPalavra(date: string) {
     }
   }
 
-  // Substituição manual
-  if (
-    override?.action_type === 'replace' &&
-    override.replacement
-  ) {
+  if (override?.action_type === 'replace' && override.replacement) {
     const replacement = Array.isArray(override.replacement)
       ? override.replacement[0]
       : override.replacement
 
-    const { data: user } = replacement.linked_user_id
+    const { data: userData } = replacement.linked_user_id
       ? await supabase
           .from('profiles')
-          .select(`
-            id,
-            name,
-            username,
-            avatar_url,
-            role
-          `)
+          .select('id, name, username, avatar_url, role')
           .eq('id', replacement.linked_user_id)
           .single()
       : { data: null }
@@ -276,35 +256,22 @@ export async function getResponsavelPalavra(date: string) {
       automatic: false,
       override: true,
       pending_profile: replacement,
-      user,
+      user: userData as any,
     }
   }
 
-  // --------------------------------------------------
-  // Fluxo automático normal
-  // --------------------------------------------------
-
-  const { data: pendingProfile } = await supabase
+  const { data: pendingProfileData } = await supabase
     .from('pending_profiles')
-    .select(`
-      id,
-      name,
-      role,
-      linked_user_id
-    `)
+    .select('id, name, role, linked_user_id')
     .eq('name', nomeResponsavel)
     .single()
 
-  const { data: user } = pendingProfile?.linked_user_id
+  const pendingProfile = pendingProfileData as any
+
+  const { data: userData } = pendingProfile?.linked_user_id
     ? await supabase
         .from('profiles')
-        .select(`
-          id,
-          name,
-          username,
-          avatar_url,
-          role
-        `)
+        .select('id, name, username, avatar_url, role')
         .eq('id', pendingProfile.linked_user_id)
         .single()
     : { data: null }
@@ -313,13 +280,12 @@ export async function getResponsavelPalavra(date: string) {
     automatic: true,
     override: false,
     pending_profile: pendingProfile,
-    user,
+    user: userData as any,
   }
 }
 
-/** Comentários de uma palavra — busca de palavra_comments */
 export async function getComentariosPalavra(palavraId: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const { data, error } = await supabase
     .from('palavra_comments')
@@ -336,30 +302,27 @@ export async function getComentariosPalavra(palavraId: string) {
   console.log('GET COMENTARIOS DATA:', data)
   console.log('GET COMENTARIOS ERROR:', error)
 
-  return data ?? []
+  return (data ?? []) as any[]
 }
 
-// ─────────────────────────────────────────────
-// INTERAÇÕES
-// ─────────────────────────────────────────────
-
-/** Toggle: devocional, orando ou curtida */
 export async function togglePalavraInteraction(
   palavraId: string,
   type: 'devotional' | 'like'
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado' }
 
-  const { data: existing } = await supabase
+  const { data: existingData } = await supabase
     .from('palavra_interactions')
     .select('id')
     .eq('palavra_id', palavraId)
     .eq('user_id', user.id)
     .eq('type', type)
     .maybeSingle()
+
+  const existing = existingData as any
 
   if (existing) {
     const { error } = await supabase
@@ -393,56 +356,62 @@ export async function togglePalavraInteraction(
   if (error) return { error: 'Erro ao salvar interação.' }
 
   if (type === 'like') {
-  const { data: palavra } = await supabase
-    .from('palavra_do_dia')
-    .select('responsible_id')
-    .eq('id', palavraId)
-    .single()
+    const { data: palavraData } = await supabase
+      .from('palavra_do_dia')
+      .select('responsible_id')
+      .eq('id', palavraId)
+      .single()
 
-  const { data: actor } = await supabase
-    .from('profiles')
-    .select('name')
-    .eq('id', user.id)
-    .single()
+    const palavra = palavraData as any
 
-  if (palavra?.responsible_id) {
-    await criarNotificacao({
-      userId: palavra.responsible_id,
-      actorId: user.id,
-      type: 'palavra_like',
-      title: 'Curtiram sua Palavra',
-      message: `${actor?.name ?? 'Alguém'} curtiu sua Palavra do Dia.`,
-      href: '/palavra',
-    })
+    const { data: actorData } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+
+    const actor = actorData as any
+
+    if (palavra?.responsible_id) {
+      await criarNotificacao({
+        userId: palavra.responsible_id,
+        actorId: user.id,
+        type: 'palavra_like',
+        title: 'Curtiram sua Palavra',
+        message: `${actor?.name ?? 'Alguém'} curtiu sua Palavra do Dia.`,
+        href: '/palavra',
+      })
+    }
   }
-}
-
-if (type === 'devotional') {
-  const { data: palavra } = await supabase
-    .from('palavra_do_dia')
-    .select('responsible_id')
-    .eq('id', palavraId)
-    .single()
-
-  const { data: actor } = await supabase
-    .from('profiles')
-    .select('name')
-    .eq('id', user.id)
-    .single()
-
-  if (palavra?.responsible_id) {
-    await criarNotificacao({
-      userId: palavra.responsible_id,
-      actorId: user.id,
-      type: 'palavra_devocional',
-      title: 'Novo devocional',
-      message: `${actor?.name ?? 'Alguém'} marcou que fez o devocional da sua Palavra.`,
-      href: '/palavra',
-    })
-  }
-}
 
   if (type === 'devotional') {
+    const { data: palavraData } = await supabase
+      .from('palavra_do_dia')
+      .select('responsible_id')
+      .eq('id', palavraId)
+      .single()
+
+    const palavra = palavraData as any
+
+    const { data: actorData } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+
+    const actor = actorData as any
+
+    if (palavra?.responsible_id) {
+      await criarNotificacao({
+        userId: palavra.responsible_id,
+        actorId: user.id,
+        type: 'palavra_devocional',
+        title: 'Novo devocional',
+        message: `${actor?.name ?? 'Alguém'} marcou que fez o devocional da sua Palavra.`,
+        href: '/palavra',
+      })
+    }
+
     await supabase.rpc('increment_palavra_count', {
       p_id: palavraId,
       p_field: 'devotional_count',
@@ -455,11 +424,11 @@ if (type === 'devotional') {
   return { active: true }
 }
 
-/** Adicionar comentário */
 export async function adicionarComentario(palavraId: string, content: string) {
   if (!content.trim()) return { error: 'Comentário não pode ser vazio.' }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado' }
 
@@ -467,63 +436,70 @@ export async function adicionarComentario(palavraId: string, content: string) {
     .from('palavra_comments')
     .insert({
       palavra_id: palavraId,
-      author_id:  user.id,
-      content:    content.trim(),
+      author_id: user.id,
+      content: content.trim(),
     })
 
   if (error) return { error: 'Erro ao enviar comentário.' }
 
-const { data: palavra } = await supabase
-  .from('palavra_do_dia')
-  .select('responsible_id')
-  .eq('id', palavraId)
-  .single()
+  const { data: palavraData } = await supabase
+    .from('palavra_do_dia')
+    .select('responsible_id')
+    .eq('id', palavraId)
+    .single()
 
-const { data: actor } = await supabase
-  .from('profiles')
-  .select('name')
-  .eq('id', user.id)
-  .single()
+  const palavra = palavraData as any
 
-if (palavra?.responsible_id) {
-  await criarNotificacao({
-    userId: palavra.responsible_id,
-    actorId: user.id,
-    type: 'palavra_comment',
-    title: 'Novo comentário',
-    message: `${actor?.name ?? 'Alguém'} comentou sua Palavra do Dia.`,
-    href: '/palavra',
-  })
-}
+  const { data: actorData } = await supabase
+    .from('profiles')
+    .select('name')
+    .eq('id', user.id)
+    .single()
+
+  const actor = actorData as any
+
+  if (palavra?.responsible_id) {
+    await criarNotificacao({
+      userId: palavra.responsible_id,
+      actorId: user.id,
+      type: 'palavra_comment',
+      title: 'Novo comentário',
+      message: `${actor?.name ?? 'Alguém'} comentou sua Palavra do Dia.`,
+      href: '/palavra',
+    })
+  }
 
   revalidatePath(`/palavra/${palavraId}`)
   return { success: true }
 }
 
-/** Excluir comentário */
 export async function excluirComentario(formData: FormData) {
   const commentId = formData.get('commentId') as string
 
   if (!commentId) return { error: 'Comentário inválido.' }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado' }
 
-  const { data: comment } = await supabase
+  const { data: commentData } = await supabase
     .from('palavra_comments')
     .select('id, palavra_id, author_id')
     .eq('id', commentId)
     .single()
 
+  const comment = commentData as any
+
   if (!comment) return { error: 'Comentário não encontrado.' }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  const profile = profileData as any
 
   const podeExcluir =
     comment.author_id === user.id ||
@@ -544,21 +520,19 @@ export async function excluirComentario(formData: FormData) {
   return { success: true }
 }
 
-// ─────────────────────────────────────────────
-// CRUD (líderes / admin)
-// ─────────────────────────────────────────────
-
-/** Criar nova palavra do dia */
 export async function criarPalavra(formData: FormData) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  const profile = profileData as any
 
   if (!profile || !['admin', 'leader'].includes(profile.role)) {
     redirect('/palavra?erro=Sem permissão para criar Palavra do Dia.')
@@ -630,7 +604,7 @@ export async function criarPalavra(formData: FormData) {
     media_type = 'audio_video'
   }
 
-  const { data, error } = await supabase
+  const { data: createdData, error } = await supabase
     .from('palavra_do_dia')
     .insert({
       responsible_id: user.id,
@@ -649,6 +623,8 @@ export async function criarPalavra(formData: FormData) {
     .select('id')
     .single()
 
+  const created = createdData as any
+
   if (error) {
     if (error.code === '23505') {
       redirect('/palavra/criar?erro=Já existe uma Palavra para esta data.')
@@ -658,64 +634,66 @@ export async function criarPalavra(formData: FormData) {
   }
 
   await supabase
-  .from('palavra_scale')
-  .upsert({ user_id: user.id, scheduled_date })
+    .from('palavra_scale')
+    .upsert({ user_id: user.id, scheduled_date })
 
-if (is_published) {
-  const { data: members } = await supabase
-    .from('profiles')
-    .select('id')
-    .neq('id', user.id)
+  if (is_published) {
+    const { data: membersData } = await supabase
+      .from('profiles')
+      .select('id')
+      .neq('id', user.id)
 
-  if (members && members.length > 0) {
-    await Promise.all(
-      members.map((member) =>
-        criarNotificacao({
-          userId: member.id,
-          actorId: user.id,
-          type: 'palavra_publicada',
-          title: 'Nova Palavra disponível',
-          message: verse_ref
-            ? `A Palavra do Dia em ${verse_ref} já está disponível.`
-            : 'A Palavra do Dia já está disponível.',
-          href: `/palavra/${data.id}`,
-          channel: 'both',
-          metadata: {
-            palavra_id: data.id,
-            scheduled_date,
-          },
-        })
+    const members = (membersData ?? []) as any[]
+
+    if (members.length > 0) {
+      await Promise.all(
+        members.map((member) =>
+          criarNotificacao({
+            userId: member.id,
+            actorId: user.id,
+            type: 'palavra_publicada',
+            title: 'Nova Palavra disponível',
+            message: verse_ref
+              ? `A Palavra do Dia em ${verse_ref} já está disponível.`
+              : 'A Palavra do Dia já está disponível.',
+            href: `/palavra/${created.id}`,
+            channel: 'both',
+            metadata: {
+              palavra_id: created.id,
+              scheduled_date,
+            },
+          })
+        )
       )
-    )
+    }
   }
+
+  revalidatePath('/palavra')
+  revalidatePath('/escala')
+  redirect(`/palavra/${created.id}`)
 }
 
-revalidatePath('/palavra')
-revalidatePath('/escala')
-redirect(`/palavra/${data.id}`)
-}
-
-/** Editar palavra existente */
 export async function editarPalavra(id: string, formData: FormData) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { error } = await supabase
     .from('palavra_do_dia')
     .update({
-      verse:        formData.get('verse') as string || null,
-      verse_ref:    formData.get('verse_ref') as string || null,
-      verse_book:   formData.get('verse_book') as string || null,
+      verse: (formData.get('verse') as string) || null,
+      verse_ref: (formData.get('verse_ref') as string) || null,
+      verse_book: (formData.get('verse_book') as string) || null,
       verse_chapter: parseInt(formData.get('verse_chapter') as string) || null,
-      verse_number:  parseInt(formData.get('verse_number') as string) || null,
-      reflection:   formData.get('reflection') as string || null,
-      video_url:    formData.get('video_url') as string || null,
+      verse_number: parseInt(formData.get('verse_number') as string) || null,
+      reflection: (formData.get('reflection') as string) || null,
+      video_url: (formData.get('video_url') as string) || null,
       is_published: formData.get('is_published') === 'true',
-      updated_at:   new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-    .eq('responsible_id', user.id) // só o responsável pode editar
+    .eq('responsible_id', user.id)
 
   if (error) return { error: 'Erro ao salvar alterações.' }
 
@@ -724,13 +702,10 @@ export async function editarPalavra(id: string, formData: FormData) {
   redirect(`/palavra/${id}`)
 }
 
-/** Publicar / despublicar */
 export async function togglePublicacao(id: string, isPublished: boolean) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return { error: 'Não autenticado' }
 
@@ -740,18 +715,22 @@ export async function togglePublicacao(id: string, isPublished: boolean) {
     .eq('id', id)
 
   if (isPublished) {
-    const { data: palavra } = await supabase
+    const { data: palavraData } = await supabase
       .from('palavra_do_dia')
       .select('id, verse_ref, scheduled_date')
       .eq('id', id)
       .single()
 
-    const { data: members } = await supabase
+    const palavra = palavraData as any
+
+    const { data: membersData } = await supabase
       .from('profiles')
       .select('id')
       .neq('id', user.id)
 
-    if (members && members.length > 0) {
+    const members = (membersData ?? []) as any[]
+
+    if (members.length > 0) {
       await Promise.all(
         members.map((member) =>
           criarNotificacao({
@@ -780,23 +759,19 @@ export async function togglePublicacao(id: string, isPublished: boolean) {
   return { success: true }
 }
 
-// ─────────────────────────────────────────────
-// ESCALA
-// ─────────────────────────────────────────────
-
-/** Gerar escala automática rotativa para próximos N dias */
-/** Gerar escala automática rotativa usando pending_profiles */
 export async function gerarEscalaAutomatica(startDate: string, days: number) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado' }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  const profile = profileData as any
 
   if (!profile || !['admin', 'leader'].includes(profile.role)) {
     return { error: 'Sem permissão para gerar escala.' }
@@ -816,19 +791,21 @@ export async function gerarEscalaAutomatica(startDate: string, days: number) {
     'Giovana',
   ]
 
-  const { data: pendingProfiles, error: pendingError } = await supabase
-  .from('pending_profiles')
-  .select('id, name, linked_user_id')
-  .order('created_at', { ascending: true })
+  const { data: pendingProfilesData, error: pendingError } = await supabase
+    .from('pending_profiles')
+    .select('id, name, linked_user_id')
+    .order('created_at', { ascending: true })
 
-  if (pendingError || !pendingProfiles || pendingProfiles.length === 0) {
-  console.log('PENDING ERROR:', pendingError)
-  console.log('PENDING PROFILES:', pendingProfiles)
-  return { error: pendingError?.message ?? 'Não foi possível buscar os membros.' }
-}
+  const pendingProfiles = (pendingProfilesData ?? []) as any[]
+
+  if (pendingError || pendingProfiles.length === 0) {
+    console.log('PENDING ERROR:', pendingError)
+    console.log('PENDING PROFILES:', pendingProfiles)
+    return { error: pendingError?.message ?? 'Não foi possível buscar os membros.' }
+  }
 
   const profilesOrdenados = ordem
-    .map(name => pendingProfiles.find(p => p.name === name))
+    .map((name) => pendingProfiles.find((p) => p.name === name))
     .filter(Boolean) as {
       id: string
       name: string
@@ -848,11 +825,11 @@ export async function gerarEscalaAutomatica(startDate: string, days: number) {
     const member = profilesOrdenados[i % profilesOrdenados.length]
 
     entries.push({
-  scheduled_date: date.toISOString().split('T')[0],
-  pending_profile_id: member.id,
-  user_id: member.linked_user_id,
-  notified: false,
-})
+      scheduled_date: date.toISOString().split('T')[0],
+      pending_profile_id: member.id,
+      user_id: member.linked_user_id,
+      notified: false,
+    })
   }
 
   const { error } = await supabase
@@ -867,12 +844,11 @@ export async function gerarEscalaAutomatica(startDate: string, days: number) {
   return { success: true, count: entries.length }
 }
 
-/** Trocar responsável em uma data da escala */
 export async function trocarResponsavelEscala(
   scaleId: string,
   newUserId: string
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const { error } = await supabase
     .from('palavra_scale')
@@ -885,9 +861,8 @@ export async function trocarResponsavelEscala(
   return { success: true }
 }
 
-/** Buscar palavra por ID */
 export async function getPalavraById(id: string): Promise<PalavraDodia | null> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data } = await supabase
@@ -901,23 +876,27 @@ export async function getPalavraById(id: string): Promise<PalavraDodia | null> {
     .eq('id', id)
     .single()
 
-  if (!data) return null
+  const palavra = data as any
+
+  if (!palavra) return null
 
   if (user) {
-    const { data: interactions } = await supabase
+    const { data: interactionsData } = await supabase
       .from('palavra_interactions')
       .select('type')
-      .eq('palavra_id', data.id)
+      .eq('palavra_id', palavra.id)
       .eq('user_id', user.id)
 
-    const types = new Set(interactions?.map(i => i.type) ?? [])
+    const interactions = (interactionsData ?? []) as any[]
+    const types = new Set(interactions.map((i) => i.type))
+
     return {
-      ...data,
+      ...palavra,
       user_devotional: types.has('devotional'),
-      user_praying:    types.has('praying'),
-      user_liked:      types.has('like'),
+      user_praying: types.has('praying'),
+      user_liked: types.has('like'),
     } as PalavraDodia
   }
 
-  return data as PalavraDodia
+  return palavra as PalavraDodia
 }

@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import type { CookieOptions } from '@supabase/ssr'
 import type { Database } from '@/types'
 
-// Para Server Components e Server Actions
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
 
@@ -14,14 +14,19 @@ export async function createSupabaseServerClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(
+          cookiesToSet: {
+            name: string
+            value: string
+            options?: CookieOptions
+          }[]
+        ) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options)
             })
           } catch {
-            // Em Server Components read-only, ignorar silenciosamente
-            // O middleware.ts cuida de atualizar os cookies
+            // Server Components podem ser read-only; middleware atualiza cookies.
           }
         },
       },

@@ -53,16 +53,22 @@ export default function CadastroForm({ inviteToken }: CadastroFormProps) {
     try {
       const supabase = createSupabaseClient()
 
-      const { data } = await supabase.rpc('validate_invite_token', {
+      const { data } = await (supabase as any).rpc('validate_invite_token', {
         p_token: t.trim(),
       })
 
-      if (data?.valid) {
-        setTokenName(data.name)
+      const result = data as {
+        valid?: boolean
+        name?: string
+        message?: string
+      } | null
+
+      if (result?.valid) {
+        setTokenName(result.name ?? null)
         setTokenError(null)
       } else {
         setTokenName(null)
-        setTokenError(data?.message ?? 'Código inválido.')
+        setTokenError(result?.message ?? 'Código inválido.')
       }
     } catch {
       setTokenError('Erro ao validar código. Tente novamente.')
@@ -138,14 +144,14 @@ export default function CadastroForm({ inviteToken }: CadastroFormProps) {
       <div className="relative w-full max-w-sm">
         <div className="flex flex-col items-center mb-7">
           <div className="relative w-40 h-40 mb-5">
-  <Image
-    src="/logo.png"
-    alt="Ministério Nova Aliança"
-    fill
-    className="object-contain"
-    priority
-  />
-</div>
+            <Image
+              src="/logo.png"
+              alt="Ministério Nova Aliança"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
 
           <p className="text-[11px] font-black tracking-[0.28em] uppercase text-brand-400">
             Ministério Nova Aliança

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export async function criarDestaqueStory(formData: FormData) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -20,22 +20,26 @@ export async function criarDestaqueStory(formData: FormData) {
     redirect('/feed/stories/criar/arquivo?erro=destaque')
   }
 
-  const { data: stories, error: storiesError } = await supabase
+  const { data: storiesData, error: storiesError } = await supabase
     .from('feed_stories')
     .select('id, author_id')
     .in('id', storyIds)
 
-  if (storiesError || !stories || stories.length !== storyIds.length) {
+  const stories = (storiesData ?? []) as any[]
+
+  if (storiesError || stories.length !== storyIds.length) {
     redirect('/feed/stories/criar/arquivo?erro=stories')
   }
 
-  const allBelongToUser = stories.every((story) => story.author_id === user.id)
+  const allBelongToUser = stories.every(
+    (story) => story.author_id === user.id
+  )
 
   if (!allBelongToUser) {
     redirect('/feed/stories/criar/arquivo?erro=permissao')
   }
 
-  const { data: highlight, error: highlightError } = await supabase
+  const { data: highlightData, error: highlightError } = await supabase
     .from('story_highlights')
     .insert({
       user_id: user.id,
@@ -44,6 +48,8 @@ export async function criarDestaqueStory(formData: FormData) {
     })
     .select('id')
     .single()
+
+  const highlight = highlightData as any
 
   if (highlightError || !highlight) {
     redirect('/feed/stories/criar/arquivo?erro=criar')
@@ -68,7 +74,7 @@ export async function criarDestaqueStory(formData: FormData) {
 }
 
 export async function excluirDestaqueStory(highlightId: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -76,11 +82,13 @@ export async function excluirDestaqueStory(highlightId: string) {
 
   if (!user) redirect('/login')
 
-  const { data: highlight } = await supabase
+  const { data: highlightData } = await supabase
     .from('story_highlights')
     .select('id, user_id')
     .eq('id', highlightId)
     .single()
+
+  const highlight = highlightData as any
 
   if (!highlight) {
     throw new Error('Destaque não encontrado.')
@@ -107,7 +115,7 @@ export async function atualizarTituloDestaque(
   highlightId: string,
   title: string
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -121,11 +129,13 @@ export async function atualizarTituloDestaque(
     throw new Error('O título não pode ficar vazio.')
   }
 
-  const { data: highlight } = await supabase
+  const { data: highlightData } = await supabase
     .from('story_highlights')
     .select('id, user_id')
     .eq('id', highlightId)
     .single()
+
+  const highlight = highlightData as any
 
   if (!highlight || highlight.user_id !== user.id) {
     throw new Error('Você não tem permissão para editar este destaque.')
@@ -143,7 +153,7 @@ export async function adicionarStoryAoDestaque(
   highlightId: string,
   storyId: string
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -151,32 +161,34 @@ export async function adicionarStoryAoDestaque(
 
   if (!user) redirect('/login')
 
-  const { data: highlight } = await supabase
+  const { data: highlightData } = await supabase
     .from('story_highlights')
     .select('id, user_id')
     .eq('id', highlightId)
     .single()
 
+  const highlight = highlightData as any
+
   if (!highlight || highlight.user_id !== user.id) {
     throw new Error('Você não tem permissão para editar este destaque.')
   }
 
-  const { data: story } = await supabase
+  const { data: storyData } = await supabase
     .from('feed_stories')
     .select('id, author_id')
     .eq('id', storyId)
     .single()
 
+  const story = storyData as any
+
   if (!story || story.author_id !== user.id) {
     throw new Error('Story inválido.')
   }
 
-  await supabase
-    .from('story_highlight_items')
-    .upsert({
-      highlight_id: highlightId,
-      story_id: storyId,
-    })
+  await supabase.from('story_highlight_items').upsert({
+    highlight_id: highlightId,
+    story_id: storyId,
+  })
 
   revalidatePath('/perfil')
 }
@@ -185,7 +197,7 @@ export async function removerStoryDoDestaque(
   highlightId: string,
   storyId: string
 ) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -193,11 +205,13 @@ export async function removerStoryDoDestaque(
 
   if (!user) redirect('/login')
 
-  const { data: highlight } = await supabase
+  const { data: highlightData } = await supabase
     .from('story_highlights')
     .select('id, user_id, cover_story_id')
     .eq('id', highlightId)
     .single()
+
+  const highlight = highlightData as any
 
   if (!highlight || highlight.user_id !== user.id) {
     throw new Error('Você não tem permissão para editar este destaque.')
@@ -210,12 +224,14 @@ export async function removerStoryDoDestaque(
     .eq('story_id', storyId)
 
   if (highlight.cover_story_id === storyId) {
-    const { data: nextItem } = await supabase
+    const { data: nextItemData } = await supabase
       .from('story_highlight_items')
       .select('story_id')
       .eq('highlight_id', highlightId)
       .limit(1)
       .maybeSingle()
+
+    const nextItem = nextItemData as any
 
     await supabase
       .from('story_highlights')

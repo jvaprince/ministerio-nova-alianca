@@ -33,10 +33,11 @@ export default async function JornadasPage() {
     .limit(1)
     .maybeSingle()
 
-  const progressPercent = activeJourney?.journey
-    ? Math.round(
-        (activeJourney.completed_days / activeJourney.journey.total_days) * 100
-      )
+  const jornadaAtiva = activeJourney as any
+  const jornadaInfo = jornadaAtiva?.journey as any
+
+  const progressPercent = jornadaInfo
+    ? Math.round((jornadaAtiva.completed_days / jornadaInfo.total_days) * 100)
     : 0
 
   return (
@@ -63,9 +64,9 @@ export default async function JornadasPage() {
         </header>
 
         <section className="mb-7">
-          {activeJourney?.journey ? (
+          {jornadaInfo ? (
             <Link
-              href={`/biblia/jornada/${activeJourney.journey.slug}/plano`}
+              href={`/biblia/jornada/${jornadaInfo.slug}/plano`}
               className="relative block overflow-hidden rounded-[30px] border border-brand-300/25 bg-gradient-to-br from-brand-500/90 via-brand-500/75 to-brand-700/90 p-6 shadow-[0_0_35px_rgba(59,130,246,0.18),0_20px_60px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300 active:scale-[0.985]"
             >
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent" />
@@ -78,11 +79,11 @@ export default async function JornadasPage() {
                 </p>
 
                 <h2 className="text-white text-2xl font-black mt-2">
-                  🌱 {activeJourney.journey.title}
+                  🌱 {jornadaInfo.title}
                 </h2>
 
                 <p className="text-white/75 text-sm mt-3">
-                  Dia {activeJourney.current_day} de {activeJourney.journey.total_days}
+                  Dia {jornadaAtiva.current_day} de {jornadaInfo.total_days}
                 </p>
 
                 <div className="mt-4 h-2.5 rounded-full bg-white/20 overflow-hidden">
@@ -117,7 +118,7 @@ export default async function JornadasPage() {
           )}
         </section>
 
-        <JourneyExplorer journeys={journeys ?? []} />
+        <JourneyExplorer journeys={(journeys ?? []) as any[]} />
       </div>
     </div>
   )

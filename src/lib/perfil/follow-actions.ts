@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export async function toggleFollowProfile(profileId: string, username: string) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = (await createSupabaseServerClient()) as any
 
   const {
     data: { user },
@@ -15,12 +15,14 @@ export async function toggleFollowProfile(profileId: string, username: string) {
 
   if (user.id === profileId) return
 
-  const { data: existingFollow } = await supabase
+  const { data: existingFollowData } = await supabase
     .from('followers')
     .select('id')
     .eq('follower_id', user.id)
     .eq('following_id', profileId)
     .maybeSingle()
+
+  const existingFollow = existingFollowData as any
 
   if (existingFollow) {
     const { error } = await supabase
@@ -45,11 +47,13 @@ export async function toggleFollowProfile(profileId: string, username: string) {
       throw new Error('Erro ao seguir usuário.')
     }
 
-    const { data: actor } = await supabase
+    const { data: actorData } = await supabase
       .from('profiles')
       .select('name, username')
       .eq('id', user.id)
       .single()
+
+    const actor = actorData as any
 
     const { error: notificationError } = await supabase
       .from('notifications')

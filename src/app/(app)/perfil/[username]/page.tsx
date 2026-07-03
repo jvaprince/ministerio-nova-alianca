@@ -10,7 +10,6 @@ import {
   Users,
   Trophy,
   LayoutGrid,
-  ChevronRight,
 } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getInitials } from '@/lib/utils'
@@ -61,7 +60,7 @@ export default async function PerfilPublicoPage({
 
   const username = decodeURIComponent(params.username).replace('@', '')
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from('profiles')
     .select(
       'id, name, username, bio, favorite_verse, favorite_verse_ref, avatar_url, cover_url, role, created_at'
@@ -69,15 +68,18 @@ export default async function PerfilPublicoPage({
     .eq('username', username)
     .single()
 
-  if (!profile) notFound()
+  if (!profileData) notFound()
 
+  const profile = profileData as any
   const isOwnProfile = profile.id === user.id
 
-  const { data: posts } = await supabase
+  const { data: postsData } = await supabase
     .from('feed_posts')
     .select('*')
     .eq('author_id', profile.id)
     .order('created_at', { ascending: false })
+
+  const posts = (postsData ?? []) as any[]
 
   const { count: followersCount } = await supabase
     .from('followers')
@@ -98,7 +100,7 @@ export default async function PerfilPublicoPage({
 
   const isFollowing = !!existingFollow
 
-  const { data: highlights } = await supabase
+  const { data: highlightsData } = await supabase
     .from('story_highlights')
     .select(`
       id,
@@ -114,6 +116,8 @@ export default async function PerfilPublicoPage({
     `)
     .eq('user_id', profile.id)
     .order('created_at', { ascending: true })
+
+  const highlights = (highlightsData ?? []) as any[]
 
   const roleLabel: Record<string, string> = {
     admin: 'Administrador',
@@ -228,14 +232,12 @@ export default async function PerfilPublicoPage({
             <div className="relative mt-4 w-full overflow-hidden rounded-[30px] border border-brand-300/20 bg-[#050816]/50 px-3 py-3.5 shadow-[0_0_30px_rgba(59,130,246,0.12),0_24px_80px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl transition-all duration-300 active:scale-[0.985]">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/70 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/[0.08] to-transparent" />
-              <div className="pointer-events-none absolute -left-10 -top-10 h-28 w-28 rounded-full bg-brand-400/10 blur-2xl" />
-              <div className="pointer-events-none absolute -right-10 bottom-0 h-28 w-28 rounded-full bg-brand-500/10 blur-2xl" />
 
               <div className="relative grid grid-cols-3 divide-x divide-white/10">
                 <div className="text-center">
                   <LayoutGrid size={20} className="mx-auto text-brand-400 mb-2" />
                   <p className="text-[28px] font-black text-white">
-                    {posts?.length ?? 0}
+                    {posts.length}
                   </p>
                   <p className="text-[10px] text-white/45 uppercase tracking-[0.22em] mt-1">
                     Posts
@@ -273,103 +275,99 @@ export default async function PerfilPublicoPage({
         </div>
       </div>
 
-      {(highlights?.length > 0 || isOwnProfile) && (
-  <>
-    <div className="relative z-10 px-4 mt-5 flex items-center justify-between">
-      <p className="text-[11px] font-black uppercase tracking-[0.28em] text-app-muted">
-        Destaques
-      </p>
-    </div>
+      {(highlights.length > 0 || isOwnProfile) && (
+        <>
+          <div className="relative z-10 px-4 mt-5 flex items-center justify-between">
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-app-muted">
+              Destaques
+            </p>
+          </div>
 
-    <div className="relative z-10 px-4 mt-3">
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-        <div className="flex gap-5 pb-1">
-
-          {isOwnProfile && (
-            <Link
-              href="/feed/stories/criar/arquivo"
-              className="shrink-0 w-[78px] text-center transition-all duration-300 active:scale-95"
-            >
-              <div className="mx-auto w-[70px] h-[70px] rounded-full p-[2px] bg-gradient-to-br from-brand-400/80 to-brand-900/30 shadow-[0_0_18px_rgba(16,86,176,0.18)]">
-                <div className="w-full h-full rounded-full bg-app flex items-center justify-center">
-                  <Plus size={24} className="text-brand-300" />
-                </div>
-              </div>
-
-              <p className="mt-2 text-[11px] font-semibold text-app-muted truncate">
-                Novo
-              </p>
-            </Link>
-          )}
-
-          {highlights?.map((highlight: any) => {
-            const cover = Array.isArray(highlight.cover)
-              ? highlight.cover[0]
-              : highlight.cover
-
-            return (
-              <div
-                key={highlight.id}
-                className="relative shrink-0 w-[78px] transition-all duration-300 hover:scale-105 active:scale-95"
-              >
+          <div className="relative z-10 px-4 mt-3">
+            <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+              <div className="flex gap-5 pb-1">
                 {isOwnProfile && (
-                  <form
-                    action={async () => {
-                      'use server'
-                      await excluirDestaqueStory(highlight.id)
-                    }}
-                    className="absolute -top-1 -right-1 z-20"
+                  <Link
+                    href="/feed/stories/criar/arquivo"
+                    className="shrink-0 w-[78px] text-center transition-all duration-300 active:scale-95"
                   >
-                    <button
-                      type="submit"
-                      className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg border border-black"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </form>
-                )}
-
-                <Link
-                  href={`/perfil/${profile.username}/destaques/${highlight.id}`}
-                  className="block text-center"
-                >
-                  <div className="mx-auto w-[70px] h-[70px] rounded-full p-[2px] bg-gradient-to-br from-brand-300/90 via-brand-500/70 to-brand-900/10 shadow-[0_0_24px_rgba(16,86,176,0.24)]">
-                    <div className="w-full h-full rounded-full bg-app p-[3px]">
-                      <div className="w-full h-full rounded-full overflow-hidden bg-app-card">
-                        {cover?.image_url ? (
-                          <img
-                            src={cover.image_url}
-                            alt={highlight.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : cover?.video_url ? (
-                          <video
-                            src={cover.video_url}
-                            muted
-                            playsInline
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-app-muted text-lg font-bold">
-                            {(highlight.title ?? 'D').slice(0, 1)}
-                          </div>
-                        )}
+                    <div className="mx-auto w-[70px] h-[70px] rounded-full p-[2px] bg-gradient-to-br from-brand-400/80 to-brand-900/30 shadow-[0_0_18px_rgba(16,86,176,0.18)]">
+                      <div className="w-full h-full rounded-full bg-app flex items-center justify-center">
+                        <Plus size={24} className="text-brand-300" />
                       </div>
                     </div>
-                  </div>
 
-                  <p className="mt-2 text-[11px] font-semibold text-app-muted truncate">
-                    {highlight.title}
-                  </p>
-                </Link>
+                    <p className="mt-2 text-[11px] font-semibold text-app-muted truncate">
+                      Novo
+                    </p>
+                  </Link>
+                )}
+
+                {highlights.map((highlight: any) => {
+                  const cover = Array.isArray(highlight.cover)
+                    ? highlight.cover[0]
+                    : highlight.cover
+
+                  return (
+                    <div
+                      key={highlight.id}
+                      className="relative shrink-0 w-[78px] transition-all duration-300 hover:scale-105 active:scale-95"
+                    >
+                      {isOwnProfile && (
+                        <form
+                          action={excluirDestaqueStory.bind(null, highlight.id) as any}
+                          className="absolute -top-1 -right-1 z-20"
+                        >
+                          <button
+                            type="submit"
+                            className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg border border-black"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </form>
+                      )}
+
+                      <Link
+                        href={`/perfil/${profile.username}/destaques/${highlight.id}`}
+                        className="block text-center"
+                      >
+                        <div className="mx-auto w-[70px] h-[70px] rounded-full p-[2px] bg-gradient-to-br from-brand-300/90 via-brand-500/70 to-brand-900/10 shadow-[0_0_24px_rgba(16,86,176,0.24)]">
+                          <div className="w-full h-full rounded-full bg-app p-[3px]">
+                            <div className="w-full h-full rounded-full overflow-hidden bg-app-card">
+                              {cover?.image_url ? (
+                                <img
+                                  src={cover.image_url}
+                                  alt={highlight.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : cover?.video_url ? (
+                                <video
+                                  src={cover.video_url}
+                                  muted
+                                  playsInline
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-app-muted text-lg font-bold">
+                                  {(highlight.title ?? 'D').slice(0, 1)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="mt-2 text-[11px] font-semibold text-app-muted truncate">
+                          {highlight.title}
+                        </p>
+                      </Link>
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  </>
-)}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="relative z-10 px-4 mt-8">
         <div className="flex items-center gap-3 mb-4">
@@ -383,7 +381,7 @@ export default async function PerfilPublicoPage({
           </h2>
         </div>
 
-        {!posts || posts.length === 0 ? (
+        {posts.length === 0 ? (
           <div className="py-10 text-center bg-app-card border border-app rounded-[28px]">
             <MessageCircle size={24} className="text-app-muted mx-auto mb-2" />
             <p className="text-sm text-app-muted">

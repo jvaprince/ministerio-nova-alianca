@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import PalavraHoje from '@/components/palavra/PalavraHoje'
 import PalavraHojeLoading from '@/components/palavra/PalavraHojeLoading'
 import ComentariosSection from '@/components/palavra/ComentariosSection'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import BackButton from '@/components/ui/BackButton'
 
 export const metadata: Metadata = {
@@ -23,13 +23,17 @@ export default async function PalavraIdPage({
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) redirect('/login')
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
-  const podeGerir = ['admin', 'leader'].includes(profile?.role ?? '')
+  const role = (profile as { role?: string } | null)?.role
+
+  const podeGerir = ['admin', 'leader'].includes(role ?? '')
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-8">
@@ -57,7 +61,7 @@ export default async function PalavraIdPage({
         <Suspense fallback={<PalavraHojeLoading />}>
           <PalavraIdContent
             id={params.id}
-            userId={user!.id}
+            userId={user.id}
             podeGerir={podeGerir}
           />
         </Suspense>
@@ -76,11 +80,12 @@ async function PalavraIdContent({
   podeGerir: boolean
 }) {
   const palavra = await getPalavraById(id)
+
   if (!palavra) notFound()
 
   return (
     <PalavraHoje
-      palavra={palavra}
+      palavra={palavra as any}
       userId={userId}
       podeGerir={podeGerir}
       comentariosSlot={

@@ -23,7 +23,9 @@ export default async function EditarRepertorioPage({
     .eq('id', user.id)
     .single()
 
-  if (!['admin', 'leader'].includes(profile?.role ?? '')) {
+  const role = (profile as { role?: string } | null)?.role
+
+  if (!['admin', 'leader'].includes(role ?? '')) {
     redirect(`/louvores/${params.id}`)
   }
 
@@ -44,12 +46,16 @@ export default async function EditarRepertorioPage({
 
   if (!repertorio) notFound()
 
+  const repertorioAtual = repertorio as any
+
   const { data: events } = await supabase
     .from('events')
     .select('id, title, event_date, event_time')
     .order('event_date')
 
-  const editarComId = editarRepertorio.bind(null, params.id)
+  const listaEvents = (events ?? []) as any[]
+
+  const editarComId = editarRepertorio.bind(null, params.id) as any
 
   return (
     <div className="relative min-h-screen bg-[#050816] pb-52">
@@ -69,8 +75,8 @@ export default async function EditarRepertorioPage({
 
       <EditRepertorioForm
         action={editarComId}
-        repertorio={repertorio}
-        events={events ?? []}
+        repertorio={repertorioAtual}
+        events={listaEvents}
       />
     </div>
   )

@@ -66,12 +66,17 @@ function getAchievementStyle(code?: string) {
 
 function rarityWeight(code?: string) {
   if (code === 'monthly_top_1' || code === 'weekly_top_1') return 4
+
   if (
     code === 'weekly_top_3' ||
     code === 'streak_30' ||
     code === 'journey_knowing_jesus'
-  ) return 3
+  ) {
+    return 3
+  }
+
   if (code === 'streak_7' || code === 'streak_3') return 2
+
   return 1
 }
 
@@ -87,6 +92,8 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
 
   if (!profile) notFound()
 
+  const perfil = profile as any
+
   const { data: achievements } = await supabase
     .from('user_achievements')
     .select(`
@@ -99,10 +106,12 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
         code
       )
     `)
-    .eq('user_id', profile.id)
+    .eq('user_id', perfil.id)
     .order('earned_at', { ascending: false })
 
-  const total = achievements?.length ?? 0
+  const listaAchievements = (achievements ?? []) as any[]
+
+  const total = listaAchievements.length
 
   const stats = {
     comum: 0,
@@ -112,7 +121,7 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
     xp: 0,
   }
 
-  achievements?.forEach((item: any) => {
+  listaAchievements.forEach((item) => {
     const style = getAchievementStyle(item.achievement?.code)
 
     stats.xp += style.score
@@ -123,14 +132,13 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
     if (style.badge === 'Lendária') stats.lendaria += 1
   })
 
-  const featured =
-    achievements
-      ?.slice()
-      .sort(
-        (a: any, b: any) =>
-          rarityWeight(b.achievement?.code) - rarityWeight(a.achievement?.code)
-      )
-      .slice(0, 3) ?? []
+  const featured = listaAchievements
+    .slice()
+    .sort(
+      (a, b) =>
+        rarityWeight(b.achievement?.code) - rarityWeight(a.achievement?.code)
+    )
+    .slice(0, 3)
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] px-4 pt-12 pb-52">
@@ -143,7 +151,7 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-6">
           <Link
-            href={`/perfil/${profile.username}`}
+            href={`/perfil/${perfil.username}`}
             className="w-11 h-11 rounded-full border border-white/[0.08] bg-white/[0.05] flex items-center justify-center text-white/75 active:scale-95"
           >
             <ArrowLeft size={18} />
@@ -151,7 +159,7 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
 
           <div>
             <p className="text-brand-400 text-[11px] uppercase tracking-[0.24em] font-black">
-              Perfil de {profile.name ?? profile.username}
+              Perfil de {perfil.name ?? perfil.username}
             </p>
 
             <h1 className="text-[32px] font-black text-white tracking-tight">
@@ -241,7 +249,7 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  {featured.map((item: any) => {
+                  {featured.map((item) => {
                     const style = getAchievementStyle(item.achievement?.code)
 
                     return (
@@ -285,7 +293,7 @@ export default async function ConquistasPublicasPage({ params }: PageProps) {
               </div>
 
               <div className="space-y-3">
-                {achievements?.map((item: any) => {
+                {listaAchievements.map((item) => {
                   const style = getAchievementStyle(item.achievement?.code)
 
                   return (
