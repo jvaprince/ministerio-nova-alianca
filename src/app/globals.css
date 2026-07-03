@@ -235,3 +235,13 @@ html,
 body {
   background: #050816;
 }
+
+html,
+body {
+  background: #050816;
+  min-height: 100%;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}

@@ -25,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
-      <body>
+      <body className="bg-[#050816]">
         <ThemeProvider>
           {children}
           <Toaster position="top-center" />
