@@ -14,19 +14,19 @@ export default function BottomNav({
   const pathname = usePathname()
 
   const showBottomNav =
-  pathname === '/inicio' ||
-  pathname === '/feed' ||
-  pathname === '/biblia' ||
-  pathname === '/agenda' ||
-  pathname === '/perfil' ||
-  /^\/perfil\/[^/]+$/.test(pathname)
+    pathname === '/inicio' ||
+    pathname === '/feed' ||
+    pathname === '/biblia' ||
+    pathname === '/agenda' ||
+    pathname === '/perfil' ||
+    /^\/perfil\/[^/]+$/.test(pathname)
 
-if (!showBottomNav) return null
+  if (!showBottomNav) return null
 
   const tabs = [
     { href: '/inicio', label: 'Início', icon: Home },
     { href: '/feed', label: 'Feed', icon: Newspaper },
-    { href: '/biblia', label: BookOpen ? 'Bíblia' : 'Bíblia', icon: BookOpen },
+    { href: '/biblia', label: 'Bíblia', icon: BookOpen },
     { href: '/agenda', label: 'Agenda', icon: Calendar },
     {
       href: username ? `/perfil/${username}` : '/perfil',
