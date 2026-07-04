@@ -12,6 +12,12 @@ export async function sendPushToUser({
   const appId = process.env.ONESIGNAL_APP_ID
   const apiKey = process.env.ONESIGNAL_API_KEY
 
+  console.log('ONESIGNAL ENV:', {
+    hasAppId: !!appId,
+    hasApiKey: !!apiKey,
+    userId,
+  })
+
   if (!appId || !apiKey) return
 
   const baseUrl =
@@ -20,7 +26,7 @@ export async function sendPushToUser({
 
   const url = href ? `${baseUrl}${href}` : baseUrl
 
-  await fetch('https://onesignal.com/api/v1/notifications', {
+  const response = await fetch('https://onesignal.com/api/v1/notifications', {
     method: 'POST',
     headers: {
       Authorization: `Basic ${apiKey}`,
@@ -30,16 +36,18 @@ export async function sendPushToUser({
       app_id: appId,
       include_external_user_ids: [userId],
       channel_for_external_user_ids: 'push',
-      headings: {
-        en: title,
-        pt: title,
-      },
-      contents: {
-        en: message ?? title,
-        pt: message ?? title,
-      },
+      headings: { en: title, pt: title },
+      contents: { en: message ?? title, pt: message ?? title },
       url,
       web_url: url,
     }),
+  })
+
+  const text = await response.text()
+
+  console.log('ONESIGNAL RESPONSE:', {
+    status: response.status,
+    ok: response.ok,
+    text,
   })
 }
