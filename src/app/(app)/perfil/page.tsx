@@ -17,6 +17,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import ProfilePostCard from '@/components/perfil/ProfilePostCard'
+import EnablePushButton from '@/components/notifications/EnablePushButton'
 
 export const metadata: Metadata = {
   title: 'Perfil — Ministério Nova Aliança',
@@ -233,6 +234,8 @@ export default async function PerfilPage() {
             title="Notificações"
             description="Acompanhe interações e avisos"
           />
+
+          <EnablePushButton />
 
           <MenuItem
             href="/biblia/diario"
