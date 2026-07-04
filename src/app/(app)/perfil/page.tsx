@@ -235,14 +235,14 @@ export default async function PerfilPage() {
             description="Acompanhe interações e avisos"
           />
 
-          <EnablePushButton />
-
           <MenuItem
             href="/biblia/diario"
             icon={<BookOpen size={18} />}
             title="Diário Espiritual"
             description="Suas reflexões das jornadas"
           />
+
+          <EnablePushButton />
 
           {profile?.role === 'admin' && (
             <MenuItem
