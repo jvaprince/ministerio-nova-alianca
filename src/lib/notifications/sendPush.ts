@@ -38,7 +38,6 @@ export async function sendPushToUser({
       channel_for_external_user_ids: 'push',
       headings: { en: title, pt: title },
       contents: { en: message ?? title, pt: message ?? title },
-      url,
       web_url: url,
     }),
   })
