@@ -12,7 +12,10 @@ export async function sendPushToUser({
   const appId = process.env.ONESIGNAL_APP_ID
   const apiKey = process.env.ONESIGNAL_API_KEY
 
-  if (!appId || !apiKey) return
+  if (!appId || !apiKey) {
+    console.log('OneSignal env ausente')
+    return
+  }
 
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ??
@@ -20,10 +23,10 @@ export async function sendPushToUser({
 
   const url = href ? `${baseUrl}${href}` : baseUrl
 
-  await fetch('https://onesignal.com/api/v1/notifications', {
+  const response = await fetch('https://api.onesignal.com/notifications', {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${apiKey}`,
+      Authorization: `Key ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -44,4 +47,17 @@ export async function sendPushToUser({
       web_url: url,
     }),
   })
+
+  const result = await response.json().catch(() => null)
+
+  console.log('ONESIGNAL PUSH RESULT:', {
+    ok: response.ok,
+    status: response.status,
+    userId,
+    result,
+  })
+
+  if (!response.ok) {
+    console.error('Erro ao enviar push OneSignal:', result)
+  }
 }
