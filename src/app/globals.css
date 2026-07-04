@@ -231,19 +231,15 @@ body.story-viewer-open .bottom-nav {
   display: none !important;
 }
 
-html,
-body {
-  background: #050816;
-}
-
-html,
-body {
+html {
   background: #050816;
   min-height: 100%;
 }
 
 body {
-  padding-bottom: env(safe-area-inset-bottom);
+  background: #050816;
+  min-height: 100%;
+  padding-top: 14px;
 }
 
 .premium-surface {

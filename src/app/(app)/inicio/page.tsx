@@ -33,7 +33,6 @@ function PremiumCard({
       className={`relative overflow-hidden rounded-[28px] border border-brand-300/15 bg-white/[0.04] shadow-[0_14px_45px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/45 to-transparent" />
-      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand-500/10 blur-2xl" />
       {children}
     </div>
   )
@@ -266,8 +265,6 @@ export default async function InicioPage() {
           <Link href="/palavra" className="block">
             <div className="relative overflow-hidden rounded-[34px] border border-brand-300/25 bg-gradient-to-br from-brand-500/95 via-brand-500/75 to-brand-700/95 p-5 shadow-[0_0_35px_rgba(59,130,246,0.18),0_24px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.12)] active:scale-[0.985] transition">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent" />
-              <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-              <div className="pointer-events-none absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-brand-300/20 blur-3xl" />
 
               <div className="relative flex items-start justify-between gap-4 mb-5">
                 <div>
