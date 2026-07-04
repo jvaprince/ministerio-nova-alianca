@@ -20,6 +20,7 @@ export default function OneSignalInit() {
 
       if (user?.id) {
         await OneSignal.login(user.id)
+        await OneSignal.User.PushSubscription.optIn()
       }
     }
 
