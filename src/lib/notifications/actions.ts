@@ -42,6 +42,14 @@ export async function criarNotificacao({
   metadata: metadata ?? {},
 })
 
+console.log('CRIAR NOTIFICACAO:', {
+  userId,
+  actorId,
+  type,
+  channel,
+  title,
+})
+
 if (channel === 'push' || channel === 'both') {
   await sendPushToUser({
     userId,
