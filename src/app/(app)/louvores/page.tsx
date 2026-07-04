@@ -1,8 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Music, Plus, Calendar, ChevronRight } from 'lucide-react'
+import {
+  Music,
+  Plus,
+  Calendar,
+  ChevronRight,
+  ListMusic,
+  Clock,
+  Sparkles
+} from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import BackButton from '@/components/ui/BackButton'
+import LouvoresBibliotecaClient from '@/components/louvores/LouvoresBibliotecaClient'
 
 export const metadata: Metadata = {
   title: 'Louvores — Ministério Nova Aliança',
@@ -18,6 +27,15 @@ function formatDate(date?: string | null) {
   })
 }
 
+function formatShortDate(date?: string | null) {
+  if (!date) return null
+
+  return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
 function PremiumCard({
   children,
   className = '',
@@ -27,16 +45,103 @@ function PremiumCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-[28px] border border-brand-300/15 bg-white/[0.04] shadow-[0_0_24px_rgba(59,130,246,0.07),0_20px_60px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl ${className}`}
+      className={`relative overflow-hidden rounded-[28px] border border-brand-300/15 bg-white/[0.04] shadow-[0_18px_45px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/45 to-transparent" />
-      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand-500/10 blur-2xl" />
       {children}
     </div>
   )
 }
 
-export default async function LouvoresPage() {
+function SetCard({
+  set,
+  muted = false,
+}: {
+  set: any
+  muted?: boolean
+}) {
+  const date = set.event?.event_date ?? set.worship_date
+  const songs = set.songs ?? []
+
+  return (
+    <Link
+      href={`/louvores/${set.id}`}
+      className="block transition-all duration-300 active:scale-[0.985]"
+    >
+      <PremiumCard className="p-4">
+        <div className="relative flex items-start gap-3">
+          <div
+            className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 ${
+              muted
+                ? 'bg-white/[0.05] border-white/[0.08] text-white/40'
+                : 'bg-brand-500/15 border-brand-300/15 text-brand-300'
+            }`}
+          >
+            <Music size={19} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p
+              className={`font-black truncate ${
+                muted ? 'text-white/80' : 'text-white'
+              }`}
+            >
+              {set.title}
+            </p>
+
+            <p className="text-white/40 text-xs mt-1 flex items-center gap-1">
+              <Calendar size={12} />
+              {set.event?.title
+                ? `${set.event.title} • ${formatShortDate(set.event.event_date)}`
+                : formatDate(date)}
+            </p>
+
+            {set.event?.event_time && (
+              <p className="text-white/30 text-[11px] mt-1">
+                {set.event.event_time.slice(0, 5)}
+              </p>
+            )}
+
+            {songs.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {songs.slice(0, 3).map((song: any) => (
+                  <span
+                    key={song.id}
+                    className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-[10px] font-bold text-white/45"
+                  >
+                    {song.title}
+                  </span>
+                ))}
+
+                {songs.length > 3 && (
+                  <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-[10px] font-bold text-white/35">
+                    +{songs.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="text-right shrink-0">
+            <p className="text-white/70 text-xs font-black">{songs.length}</p>
+            <p className="text-white/25 text-[10px]">músicas</p>
+          </div>
+
+          <ChevronRight size={17} className="text-white/25 mt-1" />
+        </div>
+      </PremiumCard>
+    </Link>
+  )
+}
+
+export default async function LouvoresPage({
+  searchParams,
+}: {
+  searchParams?: {
+    q?: string
+    status?: string
+  }
+}) {
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -59,6 +164,9 @@ export default async function LouvoresPage() {
     day: '2-digit',
   }).format(new Date())
 
+  const query = (searchParams?.q ?? '').trim().toLowerCase()
+  const status = searchParams?.status ?? 'todos'
+
   const { data: sets } = await supabase
     .from('worship_sets')
     .select(`
@@ -67,10 +175,12 @@ export default async function LouvoresPage() {
         id,
         title,
         event_date,
-        event_time
+        event_time,
+        location
       ),
       songs:worship_songs (
-        id
+        id,
+        title
       )
     `)
     .order('worship_date', { ascending: false })
@@ -89,7 +199,37 @@ export default async function LouvoresPage() {
   })
 
   const nextSet = upcomingSets[0]
-  const otherSets = [...upcomingSets.slice(1), ...pastSets]
+
+  const totalSets = listaSets.length
+  const totalSongs = listaSets.reduce(
+    (acc, set: any) => acc + (set.songs?.length ?? 0),
+    0
+  )
+
+  const baseList =
+    status === 'proximos'
+      ? upcomingSets
+      : status === 'historico'
+        ? pastSets
+        : listaSets
+
+  const filteredSets = baseList.filter((set: any) => {
+    if (!query) return true
+
+    const searchable = [
+      set.title,
+      set.description,
+      set.event?.title,
+      set.event?.location,
+      set.worship_date,
+      ...(set.songs ?? []).map((song: any) => song.title),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return searchable.includes(query)
+  })
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-52">
@@ -111,19 +251,19 @@ export default async function LouvoresPage() {
                 Louvores
               </p>
 
-              <h1 className="text-[26px] font-black text-white leading-tight tracking-tight mt-1">
+              <h1 className="text-[30px] font-black text-white leading-tight tracking-tight mt-1">
                 Repertórios
               </h1>
 
               <p className="text-white/40 text-sm mt-2 leading-relaxed">
-                Prepare-se para os cultos e acompanhe as músicas da semana.
+                Busque músicas já usadas, acompanhe os próximos cultos e organize os repertórios.
               </p>
             </div>
 
             {podeGerir && (
               <Link
                 href="/louvores/criar"
-                className="w-11 h-11 rounded-full border border-brand-300/25 bg-brand-500/15 backdrop-blur-xl flex items-center justify-center text-brand-300 shadow-[0_0_24px_rgba(59,130,246,0.14),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 active:scale-95"
+                className="shrink-0 w-11 h-11 rounded-full border border-brand-300/25 bg-brand-500/15 backdrop-blur-xl flex items-center justify-center text-brand-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 active:scale-95"
               >
                 <Plus size={19} />
               </Link>
@@ -131,109 +271,103 @@ export default async function LouvoresPage() {
           </div>
         </div>
 
-        <div className="px-4 space-y-6">
-          {nextSet ? (
+        <div className="px-4 space-y-5">
+          <div className="grid grid-cols-3 gap-2">
+            <PremiumCard className="p-3 text-center">
+              <ListMusic size={17} className="relative mx-auto mb-1 text-brand-300" />
+              <p className="relative text-[18px] font-black text-white">
+                {totalSets}
+              </p>
+              <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+                Repertórios
+              </p>
+            </PremiumCard>
+
+            <PremiumCard className="p-3 text-center">
+              <Music size={17} className="relative mx-auto mb-1 text-emerald-300" />
+              <p className="relative text-[18px] font-black text-white">
+                {totalSongs}
+              </p>
+              <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+                Músicas
+              </p>
+            </PremiumCard>
+
+            <PremiumCard className="p-3 text-center">
+              <Sparkles size={17} className="relative mx-auto mb-1 text-amber-300" />
+              <p className="relative text-[18px] font-black text-white">
+                {upcomingSets.length}
+              </p>
+              <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
+                Próximos
+              </p>
+            </PremiumCard>
+          </div>
+
+          {nextSet && !query && status === 'todos' && (
             <Link
               href={`/louvores/${nextSet.id}`}
               className="block transition-all duration-300 active:scale-[0.985]"
             >
-              <div className="relative overflow-hidden rounded-[30px] border border-brand-300/25 bg-gradient-to-br from-brand-500/90 via-brand-500/75 to-brand-700/90 p-5 shadow-[0_0_35px_rgba(59,130,246,0.18),0_20px_60px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)]">
+              <div className="relative overflow-hidden rounded-[34px] border border-brand-300/25 bg-gradient-to-br from-brand-500/90 via-brand-500/75 to-brand-700/90 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)]">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent" />
-                <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-                <div className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-brand-300/20 blur-3xl" />
 
                 <div className="relative">
-                  <p className="text-white/75 text-xs font-black uppercase tracking-widest">
-                    Próximo repertório
-                  </p>
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-white/75 text-xs font-black uppercase tracking-widest">
+                        Próximo repertório
+                      </p>
 
-                  <h2 className="text-white text-2xl font-black mt-2">
-                    🎵 {nextSet.title}
-                  </h2>
+                      <h2 className="text-white text-2xl font-black mt-2 leading-tight">
+                        🎵 {nextSet.title}
+                      </h2>
+                    </div>
 
-                  <p className="text-white/75 text-sm mt-3">
-                    {nextSet.event?.title
-                      ? `${nextSet.event.title} • ${formatDate(nextSet.event.event_date)}`
-                      : formatDate(nextSet.worship_date)}
-                  </p>
+                    <div className="rounded-full border border-white/20 bg-white/15 px-3 py-1">
+                      <p className="text-white text-xs font-black">
+                        {nextSet.songs?.length ?? 0} músicas
+                      </p>
+                    </div>
+                  </div>
 
-                  <p className="text-white/75 text-sm mt-1">
-                    {nextSet.songs?.length ?? 0} louvor
-                    {(nextSet.songs?.length ?? 0) === 1 ? '' : 'es'} preparados
-                  </p>
+                  <div className="space-y-2">
+                    <p className="flex items-center gap-2 text-white/75 text-sm">
+                      <Calendar size={15} />
+                      {nextSet.event?.title
+                        ? `${nextSet.event.title} • ${formatDate(nextSet.event.event_date)}`
+                        : formatDate(nextSet.worship_date)}
+                    </p>
 
-                  <p className="text-white font-bold text-sm mt-5">
-                    Ver repertório →
-                  </p>
+                    {nextSet.event?.event_time && (
+                      <p className="flex items-center gap-2 text-white/70 text-sm">
+                        <Clock size={15} />
+                        {nextSet.event.event_time.slice(0, 5)}
+                      </p>
+                    )}
+                  </div>
+
+                  {nextSet.description && (
+                    <p className="text-white/70 text-sm mt-4 leading-relaxed line-clamp-3">
+                      {nextSet.description}
+                    </p>
+                  )}
+
+                  <div className="mt-5 flex items-center justify-between">
+                    <p className="text-white font-bold text-sm">
+                      Abrir repertório
+                    </p>
+
+                    <ChevronRight size={18} className="text-white/75" />
+                  </div>
                 </div>
               </div>
             </Link>
-          ) : (
-            <PremiumCard className="p-6 text-center">
-              <Music size={30} className="relative text-white/25 mx-auto mb-3" />
-
-              <p className="relative text-white font-bold">
-                Nenhum repertório programado
-              </p>
-
-              <p className="relative text-white/40 text-sm mt-1">
-                Quando uma lista for criada, ela aparecerá aqui.
-              </p>
-            </PremiumCard>
           )}
 
-          {otherSets.length > 0 && (
-            <section>
-              <p className="text-[11px] font-black tracking-[0.24em] uppercase text-white/35 mb-3">
-                Repertórios
-              </p>
+          <LouvoresBibliotecaClient sets={listaSets} />
 
-              <div className="space-y-3">
-                {otherSets.map((set: any) => {
-                  const date = set.event?.event_date ?? set.worship_date
-
-                  return (
-                    <Link
-                      key={set.id}
-                      href={`/louvores/${set.id}`}
-                      className="block transition-all duration-300 active:scale-[0.985]"
-                    >
-                      <PremiumCard className="p-4">
-                        <div className="relative flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-2xl bg-brand-500/15 border border-brand-300/15 flex items-center justify-center text-brand-300 shrink-0">
-                            <Music size={18} />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white font-bold truncate">
-                              {set.title}
-                            </p>
-
-                            <p className="text-white/40 text-xs mt-1 flex items-center gap-1">
-                              <Calendar size={12} />
-                              {set.event?.title ?? formatDate(date)}
-                            </p>
-                          </div>
-
-                          <div className="text-right shrink-0">
-                            <p className="text-white/60 text-xs font-bold">
-                              {set.songs?.length ?? 0}
-                            </p>
-                            <p className="text-white/25 text-[10px]">
-                              músicas
-                            </p>
-                          </div>
-
-                          <ChevronRight size={17} className="text-white/25" />
-                        </div>
-                      </PremiumCard>
-                    </Link>
-                  )
-                })}
-              </div>
-            </section>
-          )}
-        </div>
+               </div>
       </div>
     </div>
   )

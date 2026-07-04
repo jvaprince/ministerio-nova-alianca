@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/devocional-pendente",
+      "schedule": "0 23 * * *"
+    }
+  ]
+}

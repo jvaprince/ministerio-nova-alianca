@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendPushToUser } from '@/lib/notifications/sendPush'
 
 export async function criarNotificacao({
   userId,
@@ -30,16 +31,25 @@ export async function criarNotificacao({
   const supabase = (await createSupabaseServerClient()) as any
 
   await supabase.from('notifications').insert({
-    user_id: userId,
-    actor_id: actorId ?? null,
-    type,
+  user_id: userId,
+  actor_id: actorId ?? null,
+  type,
+  title,
+  message: message ?? null,
+  href: href ?? null,
+  channel,
+  scheduled_for: scheduledFor ?? null,
+  metadata: metadata ?? {},
+})
+
+if (channel === 'push' || channel === 'both') {
+  await sendPushToUser({
+    userId,
     title,
-    message: message ?? null,
-    href: href ?? null,
-    channel,
-    scheduled_for: scheduledFor ?? null,
-    metadata: metadata ?? {},
+    message,
+    href,
   })
+}
 }
 
 export async function notificarTodosMembros({
