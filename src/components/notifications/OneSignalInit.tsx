@@ -18,15 +18,25 @@ export default function OneSignalInit() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      if (user?.id) {
-        await OneSignal.login(user.id)
+      if (!user?.id) return
 
-        const permission = await OneSignal.Notifications.permission
+      await OneSignal.login(user.id)
 
-        if (!permission) {
-          await OneSignal.Notifications.requestPermission()
-        }
+      const permission = OneSignal.Notifications.permission
+
+      if (permission) {
+        await OneSignal.User.PushSubscription.optIn()
+      } else {
+        await OneSignal.Notifications.requestPermission()
+        await OneSignal.User.PushSubscription.optIn()
       }
+
+      console.log('ONESIGNAL CLIENT STATUS:', {
+        userId: user.id,
+        permission: OneSignal.Notifications.permission,
+        subscriptionId: OneSignal.User.PushSubscription.id,
+        optedIn: OneSignal.User.PushSubscription.optedIn,
+      })
     }
 
     init()
