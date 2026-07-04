@@ -177,13 +177,14 @@ export async function toggleLikeFeedPost(postId: string) {
 
     if (post?.author_id) {
       await criarNotificacao({
-        userId: post.author_id,
-        actorId: user.id,
-        type: 'feed_like',
-        title: 'Nova curtida',
-        message: `${actor?.name ?? 'Alguém'} curtiu sua publicação.`,
-        href: `/feed/${postId}`,
-      })
+  userId: post.author_id,
+  actorId: user.id,
+  type: 'feed_like',
+  title: 'Nova curtida',
+  message: `${actor?.name ?? 'Alguém'} curtiu sua publicação.`,
+  href: `/feed/${postId}`,
+  channel: 'both',
+})
     }
   }
 
@@ -241,6 +242,7 @@ export async function criarComentarioFeed(
       title: 'Novo comentário',
       message: `${actor?.name ?? 'Alguém'} comentou sua publicação.`,
       href: `/feed/${postId}`,
+      channel: 'both',
     })
   }
 
