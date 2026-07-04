@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'react-hot-toast'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import OneSignalInit from '@/components/notifications/OneSignalInit'
 
 export const metadata: Metadata = {
   title: 'Ministério Nova Aliança',
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <body className="bg-[#050816]">
         <ThemeProvider>
+          <OneSignalInit />
           {children}
           <Toaster position="top-center" />
         </ThemeProvider>
