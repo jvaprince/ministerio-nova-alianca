@@ -23,7 +23,9 @@ export async function createSocialIdea(formData: FormData) {
     throw new Error('Título obrigatório')
   }
 
-  const { error } = await supabase.from('social_ideas').insert({
+  const socialIdeas = supabase.from('social_ideas') as any
+
+  const { error } = await socialIdeas.insert({
     title,
     description,
     category,
@@ -31,7 +33,7 @@ export async function createSocialIdea(formData: FormData) {
     created_by: user.id,
   })
 
-    if (error) {
+  if (error) {
     throw new Error(error.message)
   }
 
@@ -64,8 +66,9 @@ export async function updateSocialIdeaStatus(formData: FormData) {
     throw new Error('Dados inválidos')
   }
 
-  const { error } = await supabase
-    .from('social_ideas')
+  const socialIdeas = supabase.from('social_ideas') as any
+
+  const { error } = await socialIdeas
     .update({
       status,
       updated_at: new Date().toISOString(),
@@ -97,8 +100,9 @@ export async function convertIdeaToProject(formData: FormData) {
     throw new Error('Ideia inválida')
   }
 
-  const { data: idea, error: ideaError } = await supabase
-    .from('social_ideas')
+  const socialIdeas = supabase.from('social_ideas') as any
+
+  const { data: idea, error: ideaError } = await socialIdeas
     .select('*')
     .eq('id', ideaId)
     .single()
@@ -107,8 +111,9 @@ export async function convertIdeaToProject(formData: FormData) {
     throw new Error('Ideia não encontrada')
   }
 
-  const { data: project, error: projectError } = await supabase
-    .from('social_projects')
+  const socialProjects = supabase.from('social_projects') as any
+
+  const { data: project, error: projectError } = await socialProjects
     .insert({
       idea_id: idea.id,
       title: idea.title,
@@ -124,8 +129,7 @@ export async function convertIdeaToProject(formData: FormData) {
     throw new Error(projectError?.message || 'Erro ao criar projeto')
   }
 
-  await supabase
-    .from('social_ideas')
+  await socialIdeas
     .update({
       status: 'selecionada',
       updated_at: new Date().toISOString(),
@@ -134,5 +138,6 @@ export async function convertIdeaToProject(formData: FormData) {
 
   revalidatePath('/social/ideias')
   revalidatePath('/social/projetos')
+
   redirect(`/social/projetos/${project.id}`)
 }

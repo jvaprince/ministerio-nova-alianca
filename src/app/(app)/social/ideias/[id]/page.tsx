@@ -27,28 +27,35 @@ export default async function SocialIdeiaDetalhePage({
 }) {
   const supabase = await createSupabaseServerClient()
 
-  const { data: idea } = await supabase
-    .from('social_ideas')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  const { data: ideaData } = await supabase
+  .from('social_ideas')
+  .select('*')
+  .eq('id', params.id)
+  .single()
+
+const idea = ideaData as any
 
   if (!idea) notFound()
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  data: { user },
+} = await supabase.auth.getUser()
 
-  const { data: profile } = user
-    ? await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-    : { data: null }
+const profileResult = user
+  ? await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+  : null
 
-  const canManageSocial =
-    profile?.role === 'admin' || profile?.role === 'leader'
+const profile = profileResult?.data as {
+  role?: string
+} | null
+
+const canManageSocial =
+  profile?.role === 'admin' ||
+  profile?.role === 'leader'
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#070707] px-4 pb-40 pt-6 text-white">

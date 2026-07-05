@@ -21,13 +21,15 @@ export default async function SocialProjetoDetalhePage({
 }) {
   const supabase = await createSupabaseServerClient()
 
-  const { data: project } = await supabase
-    .from('social_projects')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  const { data: projectData } = await supabase
+  .from('social_projects')
+  .select('*')
+  .eq('id', params.id)
+  .single()
 
-  if (!project) notFound()
+const project = projectData as any
+
+if (!project) notFound()
 
   const completedSteps = [
     !!project.beneficiary_name,

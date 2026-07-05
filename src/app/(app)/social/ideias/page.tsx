@@ -13,10 +13,12 @@ const filters = [
 export default async function SocialIdeiasPage() {
   const supabase = await createSupabaseServerClient()
 
-  const { data: ideas } = await supabase
-    .from('social_ideas')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const { data: ideasData } = await supabase
+  .from('social_ideas')
+  .select('*')
+  .order('created_at', { ascending: false })
+
+const ideas = (ideasData ?? []) as any[]
 
   const counts = {
     todas: ideas?.length ?? 0,
