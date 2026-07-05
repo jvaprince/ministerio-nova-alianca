@@ -280,9 +280,8 @@ export async function excluirComentarioFeed(commentId: string) {
   const profile = profileData as any
 
   const podeExcluir =
-    comment.author_id === user.id ||
-    profile?.role === 'admin' ||
-    profile?.role === 'leader'
+  comment.author_id === user.id ||
+  profile?.role === 'admin'
 
   if (!podeExcluir) {
     throw new Error('Sem permissão.')
