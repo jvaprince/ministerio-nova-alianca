@@ -242,8 +242,6 @@ export default async function PerfilPage() {
             description="Suas reflexões das jornadas"
           />
 
-          <EnablePushButton />
-
           {profile?.role === 'admin' && (
             <MenuItem
               href="/admin"
