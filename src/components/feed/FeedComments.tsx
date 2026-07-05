@@ -69,9 +69,8 @@ export default function FeedComments({
         <div className="mt-4 space-y-3">
           {comments.map((comment: any) => {
             const podeExcluir =
-              comment.author_id === currentUserId ||
-              currentUserRole === 'admin' ||
-              currentUserRole === 'leader'
+  comment.author_id === currentUserId ||
+  currentUserRole === 'admin'
 
             return (
               <div
