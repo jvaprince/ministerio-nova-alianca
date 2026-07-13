@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { criarDestaqueStory } from '@/lib/feed/highlight-actions'
+import SubmitButton from '@/components/feed/SubmitButton'
 
 type ArchivedStory = {
   id: string
@@ -112,12 +113,7 @@ export default function CreateHighlightForm({
               Cancelar
             </button>
 
-            <button
-              type="submit"
-              className="flex-1 bg-brand-gradient text-white font-semibold py-3 rounded-xl text-sm"
-            >
-              Salvar
-            </button>
+            <SubmitButton />
           </div>
         </form>
       )}

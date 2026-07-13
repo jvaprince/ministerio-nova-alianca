@@ -209,6 +209,23 @@ export default async function PerfilPublicoPage({
               </p>
             )}
 
+            {(profile.favorite_verse || profile.favorite_verse_ref) && (
+  <div className="mt-4 max-w-sm">
+
+    {profile.favorite_verse && (
+      <p className="mt-2 text-[14px] leading-relaxed text-white/85 italic text-center">
+        “{profile.favorite_verse}”
+      </p>
+    )}
+
+    {profile.favorite_verse_ref && (
+      <p className="mt-2 text-[12px] font-bold text-brand-300 text-center">
+        {profile.favorite_verse_ref}
+      </p>
+    )}
+  </div>
+)}
+
             <p className="text-[12px] text-white/45 mt-4">
               Faz parte da comunidade desde{' '}
               {new Date(profile.created_at).toLocaleDateString('pt-BR', {

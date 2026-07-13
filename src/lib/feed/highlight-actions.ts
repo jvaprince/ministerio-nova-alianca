@@ -8,10 +8,16 @@ export async function criarDestaqueStory(formData: FormData) {
   const supabase = (await createSupabaseServerClient()) as any
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  data: { user },
+} = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+if (!user) redirect('/login')
+
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('username')
+  .eq('id', user.id)
+  .single()
 
   const title = String(formData.get('title') ?? '').trim()
   const storyIds = formData.getAll('story_ids').map(String)
@@ -69,18 +75,24 @@ export async function criarDestaqueStory(formData: FormData) {
   }
 
   revalidatePath('/feed/stories/criar/arquivo')
-  revalidatePath('/perfil')
-  redirect('/feed/stories/criar/arquivo?sucesso=destaque')
+  revalidatePath(`/perfil/${profile.username}`)
+  redirect(`/perfil/${profile.username}`)
 }
 
 export async function excluirDestaqueStory(highlightId: string) {
   const supabase = (await createSupabaseServerClient()) as any
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  data: { user },
+} = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+if (!user) redirect('/login')
+
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('username')
+  .eq('id', user.id)
+  .single()
 
   const { data: highlightData } = await supabase
     .from('story_highlights')
@@ -107,7 +119,7 @@ export async function excluirDestaqueStory(highlightId: string) {
     throw new Error('Erro ao excluir destaque.')
   }
 
-  revalidatePath('/perfil')
+  revalidatePath(`/perfil/${profile.username}`)
   revalidatePath('/feed/stories/criar/arquivo')
 }
 
@@ -118,10 +130,16 @@ export async function atualizarTituloDestaque(
   const supabase = (await createSupabaseServerClient()) as any
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  data: { user },
+} = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+if (!user) redirect('/login')
+
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('username')
+  .eq('id', user.id)
+  .single()
 
   const newTitle = title.trim()
 
@@ -146,7 +164,7 @@ export async function atualizarTituloDestaque(
     .update({ title: newTitle })
     .eq('id', highlightId)
 
-  revalidatePath('/perfil')
+revalidatePath(`/perfil/${profile.username}`)
 }
 
 export async function adicionarStoryAoDestaque(
@@ -156,10 +174,16 @@ export async function adicionarStoryAoDestaque(
   const supabase = (await createSupabaseServerClient()) as any
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  data: { user },
+} = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+if (!user) redirect('/login')
+
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('username')
+  .eq('id', user.id)
+  .single()
 
   const { data: highlightData } = await supabase
     .from('story_highlights')
@@ -190,7 +214,7 @@ export async function adicionarStoryAoDestaque(
     story_id: storyId,
   })
 
-  revalidatePath('/perfil')
+revalidatePath(`/perfil/${profile.username}`)
 }
 
 export async function removerStoryDoDestaque(
@@ -200,10 +224,16 @@ export async function removerStoryDoDestaque(
   const supabase = (await createSupabaseServerClient()) as any
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  data: { user },
+} = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+if (!user) redirect('/login')
+
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('username')
+  .eq('id', user.id)
+  .single()
 
   const { data: highlightData } = await supabase
     .from('story_highlights')
@@ -241,5 +271,5 @@ export async function removerStoryDoDestaque(
       .eq('id', highlightId)
   }
 
-  revalidatePath('/perfil')
+revalidatePath(`/perfil/${profile.username}`)
 }

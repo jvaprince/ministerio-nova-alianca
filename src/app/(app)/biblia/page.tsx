@@ -313,8 +313,10 @@ export default async function BibliaPage() {
                     </p>
 
                     <p className="relative text-[11px] text-white/30 mt-1">
-                      {new Date(item.last_read_at).toLocaleString('pt-BR')}
-                    </p>
+  {new Date(item.last_read_at).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+  })}
+</p>
                   </PremiumCard>
                 </Link>
               ))}

@@ -18,6 +18,11 @@ type StoryItem = {
   expires_at: string
 }
 
+// ADICIONE ESTAS LINHAS AQUI:
+interface ProfileData {
+  username: string
+}
+
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('pt-BR', {
     day: 'numeric',
@@ -52,6 +57,12 @@ export default async function ArquivoStoriesPage() {
   } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+    const { data: profile } = await supabase
+    .from('profiles')
+    .select<'username', ProfileData>('username') // <-- Tipagem explícita direto no select
+    .eq('id', user.id)
+    .single()
 
   const now = new Date().toISOString()
 
@@ -88,7 +99,7 @@ export default async function ArquivoStoriesPage() {
 
       <div className="relative z-10">
         <div className="px-4 pt-10 pb-5">
-          <BackButton href="/perfil" />
+          <BackButton href={`/perfil/${profile!.username}`} />
 
           <div className="mt-4 flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-300/20 flex items-center justify-center text-brand-300 shadow-[0_0_24px_rgba(59,130,246,0.08)]">

@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 }
 
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('pt-BR', {
+  return new Date(date).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
     day: 'numeric',
     month: 'long',
     hour: '2-digit',

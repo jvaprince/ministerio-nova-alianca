@@ -4,7 +4,7 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Music,
+  Music2,
   Plus,
   ChevronRight,
   Sparkles,
@@ -164,6 +164,13 @@ export default async function AgendaPage() {
             </div>
 
             <div className="flex items-center gap-3">
+
+               <Link
+    href="/louvores"
+    className="shrink-0 w-11 h-11 rounded-full border border-brand-300/25 bg-brand-500/15 backdrop-blur-xl flex items-center justify-center text-brand-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 active:scale-95"
+  >
+    <Music2 size={19} />
+  </Link>
               <AgendaCalendar events={listaEvents} />
 
               {podeGerir && (
@@ -284,7 +291,7 @@ export default async function AgendaPage() {
             <PremiumCard className="p-4">
               <div className="relative flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-300/20 flex items-center justify-center text-brand-300 shrink-0">
-                  <Music size={20} />
+                  <Music2 size={20} />
                 </div>
 
                 <div className="flex-1 min-w-0">

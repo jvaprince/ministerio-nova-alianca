@@ -124,7 +124,7 @@ export default function PalavraHoje({
   }
 
   return (
-    <div className="pb-44">
+    <div>
       <section className="mx-4 mt-2 overflow-hidden rounded-[34px] border border-brand-300/20 bg-white/[0.045] shadow-[0_0_34px_rgba(59,130,246,0.12),0_26px_90px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
         <div className="relative overflow-hidden p-5">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/50 to-transparent" />

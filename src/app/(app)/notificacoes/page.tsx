@@ -176,7 +176,14 @@ export default async function NotificacoesPage() {
                           )}
 
                           <p className="relative text-[11px] text-white/30 mt-3">
-                            {new Date(notification.created_at).toLocaleString('pt-BR')}
+                            {new Date(notification.created_at).toLocaleString('pt-BR', {
+  timeZone: 'America/Sao_Paulo',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})}
                           </p>
                         </PremiumCard>
                       </Link>
