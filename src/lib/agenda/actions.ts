@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { notificarTodosMembros } from '@/lib/notifications/actions'
+import { claimAction } from '@/lib/actions/idempotency'
 
 export async function criarEvento(formData: FormData): Promise<void> {
   const supabase = (await createSupabaseServerClient()) as any
@@ -26,6 +27,25 @@ export async function criarEvento(formData: FormData): Promise<void> {
     console.log('Preencha os campos obrigatórios.')
     return
   }
+
+  const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'criar-evento',
+  payload: {
+    title,
+    event_date,
+    event_time,
+    location,
+    event_type,
+    hasCover: !!(cover && cover.size > 0),
+  },
+  ttlSeconds: 30,
+})
+
+if (!allowed) {
+  redirect('/agenda')
+}
 
   let cover_url: string | null = null
 
@@ -213,18 +233,63 @@ export async function excluirEvento(formData: FormData): Promise<void> {
 
   if (!user) redirect('/login')
 
-  const id = formData.get('id') as string
+  const id = String(formData.get('id') ?? '')
 
   if (!id) {
-    console.log('Evento inválido.')
-    return
+    throw new Error('Evento inválido.')
   }
 
-  const { error } = await supabase.from('events').delete().eq('id', id)
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (profileError) {
+    throw new Error(`Erro ao verificar o cargo: ${profileError.message}`)
+  }
+
+  const role = (profile as { role?: string } | null)?.role
+
+  if (role !== 'admin' && role !== 'leader') {
+    throw new Error('Você não tem permissão para excluir eventos.')
+  }
+
+  const { data: eventoEncontrado, error: erroBusca } = await supabase
+    .from('events')
+    .select('id, title, created_by')
+    .eq('id', id)
+    .maybeSingle()
+
+  console.log('Evento encontrado:', eventoEncontrado)
+  console.log('Erro ao buscar evento:', erroBusca)
+
+  if (erroBusca) {
+    throw new Error(`Erro ao localizar o evento: ${erroBusca.message}`)
+  }
+
+  if (!eventoEncontrado) {
+    throw new Error('Evento não encontrado.')
+  }
+
+  const { data: eventoExcluido, error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', id)
+    .select('id, title')
+    .maybeSingle()
+
+  console.log('Evento excluído:', eventoExcluido)
+  console.log('Erro ao excluir evento:', error)
 
   if (error) {
-    console.log('EVENT DELETE ERROR:', error)
-    return
+    throw new Error(`Não foi possível excluir o evento: ${error.message}`)
+  }
+
+  if (!eventoExcluido) {
+    throw new Error(
+      'Nenhum evento foi excluído. A exclusão provavelmente foi bloqueada pela policy da tabela events.'
+    )
   }
 
   revalidatePath('/agenda')

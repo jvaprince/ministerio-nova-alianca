@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { criarNotificacao } from '@/lib/notifications/actions'
+import { claimAction } from '@/lib/actions/idempotency'
 
 export async function criarPostFeed(formData: FormData) {
   const supabase = (await createSupabaseServerClient()) as any
@@ -19,6 +20,8 @@ export async function criarPostFeed(formData: FormData) {
   const image = formData.get('image') as File | null
   const video = formData.get('video') as File | null
 
+  console.log('Imagem recebida no servidor:', image?.size)
+
   if (
     !content &&
     (!image || image.size === 0) &&
@@ -26,6 +29,35 @@ export async function criarPostFeed(formData: FormData) {
   ) {
     throw new Error('Escreva algo ou envie uma imagem ou vídeo.')
   }
+
+  const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'criar-post-feed',
+  payload: {
+    post_type,
+    content,
+    image: image?.size
+      ? {
+          name: image.name,
+          size: image.size,
+          type: image.type,
+        }
+      : null,
+    video: video?.size
+      ? {
+          name: video.name,
+          size: video.size,
+          type: video.type,
+        }
+      : null,
+  },
+  ttlSeconds: 30,
+})
+
+if (!allowed) {
+  return
+}
 
   let image_url: string | null = null
   let video_url: string | null = null
@@ -207,6 +239,21 @@ export async function criarComentarioFeed(
   const content = String(formData.get('content') ?? '').trim()
 
   if (!content) return
+
+  const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'criar-comentario-feed',
+  payload: {
+    postId,
+    content,
+  },
+  ttlSeconds: 10,
+})
+
+if (!allowed) {
+  return
+}
 
   const { error } = await supabase.from('feed_comments').insert({
     post_id: postId,

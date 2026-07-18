@@ -32,9 +32,45 @@ export async function atualizarCargoMembro(formData: FormData) {
   const userId = String(formData.get('user_id') ?? '')
   const role = String(formData.get('role') ?? '')
 
-  if (!userId || !['admin', 'leader', 'member'].includes(role)) return
+  if (!userId) {
+    throw new Error('Usuário não informado.')
+  }
 
-  await supabase.from('profiles').update({ role }).eq('id', userId)
+  if (!['admin', 'leader', 'member'].includes(role)) {
+    throw new Error('Cargo inválido.')
+  }
+
+  // TESTE: mostra qual ID o formulário está enviando
+  console.log('userId recebido:', userId)
+
+  // TESTE: verifica se esse ID existe na tabela profiles
+  const { data: perfilEncontrado, error: erroBusca } = await supabase
+    .from('profiles')
+    .select('id, name, role')
+    .eq('id', userId)
+
+  console.log('Perfil encontrado:', perfilEncontrado)
+  console.log('Erro ao buscar perfil:', erroBusca)
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ role })
+    .eq('id', userId)
+    .select('id, name, role')
+    .maybeSingle()
+
+  if (error) {
+    console.error('Erro ao atualizar cargo do membro:', error)
+    throw new Error(`Não foi possível atualizar o cargo: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error(
+      'Nenhum perfil foi atualizado. O ID enviado pode estar incorreto ou a alteração foi bloqueada.'
+    )
+  }
+
+  console.log('Cargo atualizado com sucesso:', data)
 
   revalidatePath('/admin/membros')
 }
@@ -45,9 +81,29 @@ export async function atualizarCargoConvite(formData: FormData) {
   const pendingId = String(formData.get('pending_id') ?? '')
   const role = String(formData.get('role') ?? '')
 
-  if (!pendingId || !['admin', 'leader', 'member'].includes(role)) return
+  if (!pendingId) {
+    throw new Error('Convite não informado.')
+  }
 
-  await supabase.from('pending_profiles').update({ role }).eq('id', pendingId)
+  if (!['admin', 'leader', 'member'].includes(role)) {
+    throw new Error('Cargo inválido.')
+  }
+
+  const { data, error } = await supabase
+    .from('pending_profiles')
+    .update({ role })
+    .eq('id', pendingId)
+    .select('id, name, role')
+    .single()
+
+  if (error) {
+    console.error('Erro ao atualizar cargo do convite:', error)
+    throw new Error(`Não foi possível atualizar o cargo: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error('O convite não foi encontrado ou a alteração foi bloqueada.')
+  }
 
   revalidatePath('/admin/membros')
 }
@@ -96,19 +152,6 @@ export async function excluirPostAdmin(formData: FormData) {
 
   revalidatePath('/admin/moderacao')
   revalidatePath('/feed')
-}
-
-export async function excluirEventoAdmin(formData: FormData) {
-  const supabase = await assertAdmin()
-
-  const eventId = String(formData.get('event_id') ?? '')
-
-  if (!eventId) return
-
-  await supabase.from('events').delete().eq('id', eventId)
-
-  revalidatePath('/admin/agenda')
-  revalidatePath('/agenda')
 }
 
 export async function excluirPalavraAdmin(formData: FormData) {
@@ -267,4 +310,25 @@ export async function trocarResponsavelEscalaAdmin(formData: FormData) {
   revalidatePath('/admin/escala')
   revalidatePath('/palavra')
   revalidatePath('/inicio')
+}
+
+export async function excluirEventoAdmin(formData: FormData) {
+  const supabase = await assertAdmin()
+
+  const eventId = String(formData.get('event_id') ?? '')
+
+  if (!eventId) return
+
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', eventId)
+
+  if (error) {
+    console.error(error)
+    throw new Error('Não foi possível excluir o evento.')
+  }
+
+  revalidatePath('/agenda')
+  revalidatePath('/admin/agenda')
 }

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { PalavraDodia } from '@/types'
 import { criarNotificacao } from '@/lib/notifications/actions'
+import { claimAction } from '@/lib/actions/idempotency'
 
 export async function getPalavraDodia(date?: string): Promise<PalavraDodia | null> {
   const supabase = (await createSupabaseServerClient()) as any
@@ -260,28 +261,45 @@ export async function getResponsavelPalavra(date: string) {
     }
   }
 
-  const { data: pendingProfileData } = await supabase
-    .from('pending_profiles')
-    .select('id, name, role, linked_user_id')
-    .eq('name', nomeResponsavel)
-    .single()
+  const { data: userData } = await supabase
+  .from('profiles')
+  .select('id, name, username, avatar_url, role')
+  .ilike('name', `%${nomeResponsavel}%`)
+  .limit(1)
+  .maybeSingle()
 
-  const pendingProfile = pendingProfileData as any
-
-  const { data: userData } = pendingProfile?.linked_user_id
-    ? await supabase
-        .from('profiles')
-        .select('id, name, username, avatar_url, role')
-        .eq('id', pendingProfile.linked_user_id)
-        .single()
-    : { data: null }
-
+if (userData) {
   return {
     automatic: true,
     override: false,
-    pending_profile: pendingProfile,
+    pending_profile: null,
     user: userData as any,
   }
+}
+
+const { data: pendingProfileData } = await supabase
+  .from('pending_profiles')
+  .select('id, name, role, linked_user_id')
+  .ilike('name', `%${nomeResponsavel}%`)
+  .limit(1)
+  .maybeSingle()
+
+const pendingProfile = pendingProfileData as any
+
+const { data: linkedUserData } = pendingProfile?.linked_user_id
+  ? await supabase
+      .from('profiles')
+      .select('id, name, username, avatar_url, role')
+      .eq('id', pendingProfile.linked_user_id)
+      .maybeSingle()
+  : { data: null }
+
+return {
+  automatic: true,
+  override: false,
+  pending_profile: pendingProfile,
+  user: linkedUserData as any,
+}
 }
 
 export async function getComentariosPalavra(palavraId: string) {
@@ -432,6 +450,21 @@ export async function adicionarComentario(palavraId: string, content: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado' }
 
+  const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'palavra-comentario',
+  payload: {
+    palavraId,
+    content: content.trim(),
+  },
+  ttlSeconds: 10,
+})
+
+if (!allowed) {
+  return { success: true }
+}
+
   const { error } = await supabase
     .from('palavra_comments')
     .insert({
@@ -567,6 +600,26 @@ if (!ehAdmin && !ehResponsavelDoDia) {
   if (!scheduled_date) {
     redirect('/palavra/criar?erro=Selecione uma data.')
   }
+
+  const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'criar-palavra',
+  payload: {
+    scheduled_date,
+    verse_ref,
+    reflection,
+    media_type:
+      audioFile?.size ? 'audio'
+      : videoFile?.size ? 'video'
+      : 'texto',
+  },
+  ttlSeconds: 30,
+})
+
+if (!allowed) {
+  redirect('/palavra')
+}
 
   if (audioFile && audioFile.size > 0) {
     const filePath = `${user.id}/audio-${Date.now()}-${audioFile.name}`

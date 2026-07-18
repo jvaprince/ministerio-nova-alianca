@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import BackButton from '@/components/ui/BackButton'
 
 export const metadata: Metadata = {
   title: 'Admin — Ministério Nova Aliança',
@@ -112,6 +113,7 @@ if (role !== 'admin') redirect('/inicio')
       </div>
 
       <div className="relative z-10">
+        <BackButton href="/inicio" />
         <p className="text-[11px] font-black tracking-[0.24em] uppercase text-brand-400">
           Painel Administrativo
         </p>

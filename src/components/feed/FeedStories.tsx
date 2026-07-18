@@ -395,23 +395,20 @@ export default function FeedStories({
           <button
   type="button"
   onClick={closeStory}
-  className="absolute top-7 right-4 z-[1000000] w-9 h-9 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white"
+  className="absolute top-[calc(env(safe-area-inset-top)+16px)] right-4 z-[1000000] w-9 h-9 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white"
 >
   <X size={18} />
 </button>
 
           <div
             className="relative w-full h-full max-w-[430px] sm:h-auto sm:max-w-[390px] sm:aspect-[9/16] bg-black overflow-hidden sm:rounded-[28px]"
-            onPointerDown={(e) => {
-              const target = e.target as HTMLElement
-              if (target.tagName === 'BUTTON' || target.tagName === 'A') return
-              setPaused(true)
-            }}
-            onPointerUp={() => setPaused(false)}
-            onPointerLeave={() => setPaused(false)}
-            onPointerCancel={() => setPaused(false)}
+            onPointerDown={() => setPaused(true)}
+onPointerUp={() => setPaused(false)}
+onPointerLeave={() => setPaused(false)}
+onPointerCancel={() => setPaused(false)}
+onContextMenu={(e) => e.preventDefault()}
           >
-            <div className="absolute top-3 left-3 right-3 z-40 flex gap-1">
+            <div className="absolute top-[calc(env(safe-area-inset-top)+8px)] left-3 right-3 z-40 flex gap-1">
               {activeGroup.stories.map((story, index) => (
                 <div
                   key={story.id}
@@ -432,7 +429,7 @@ export default function FeedStories({
               ))}
             </div>
 
-            <div className="absolute top-7 left-4 right-16 z-40 flex items-center gap-3">
+            <div className="absolute top-[calc(env(safe-area-inset-top)+44px)] left-4 right-16 z-40 flex items-center gap-3">
               <div className="w-9 h-9 rounded-full overflow-hidden bg-white/10">
                 {activeGroup.author?.avatar_url ? (
                   <img
@@ -462,7 +459,7 @@ export default function FeedStories({
   type="button"
   onClick={handleDeleteStory}
   disabled={isPending}
-  className="absolute top-7 right-16 z-50 w-9 h-9 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white/80 disabled:opacity-40"
+  className="absolute top-[calc(env(safe-area-inset-top)+16px)] right-16 z-50 w-9 h-9 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white/80 disabled:opacity-40"
 >
   <Trash2 size={17} />
 </button>

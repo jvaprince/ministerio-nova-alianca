@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { claimAction } from '@/lib/actions/idempotency'
 
 export async function startJourney(formData: FormData) {
   const journeyId = String(formData.get('journey_id'))
@@ -189,6 +190,21 @@ export async function completeJourneyDayWithReflection(formData: FormData) {
   if (!journeyId || !journeyDayId || !dayNumber) {
     throw new Error('Dados da jornada inválidos.')
   }
+
+  const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'complete-journey-day',
+  payload: {
+    journeyId,
+    dayNumber,
+  },
+  ttlSeconds: 20,
+})
+
+if (!allowed) {
+  redirect('/biblia')
+}
 
   await supabase.from('journey_reflections').upsert({
     user_id: user.id,

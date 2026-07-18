@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { claimAction } from '@/lib/actions/idempotency'
 
 export async function createSocialIdea(formData: FormData) {
   const supabase = await createSupabaseServerClient()
@@ -22,6 +23,22 @@ export async function createSocialIdea(formData: FormData) {
   if (!title) {
     throw new Error('Título obrigatório')
   }
+
+const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'criar-ideia-social',
+  payload: {
+    title,
+    description,
+    category,
+  },
+  ttlSeconds: 15,
+})
+
+if (!allowed) {
+  redirect('/social/ideias')
+}
 
   const socialIdeas = supabase.from('social_ideas') as any
 
@@ -99,6 +116,20 @@ export async function convertIdeaToProject(formData: FormData) {
   if (!ideaId) {
     throw new Error('Ideia inválida')
   }
+
+  const allowed = await claimAction({
+  supabase,
+  userId: user.id,
+  action: 'converter-ideia-em-projeto',
+  payload: {
+    ideaId,
+  },
+  ttlSeconds: 30,
+})
+
+if (!allowed) {
+  redirect('/social/projetos')
+}
 
   const socialIdeas = supabase.from('social_ideas') as any
 

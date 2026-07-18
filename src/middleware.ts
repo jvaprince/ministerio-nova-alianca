@@ -16,7 +16,6 @@ const ADMIN_ROUTES = [
 ]
 
 const LEADER_ROUTES = [
-  '/palavra/criar',
   '/palavra/editar',
   '/escala',
 ]

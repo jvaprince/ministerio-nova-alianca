@@ -2,17 +2,26 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { Calendar, Clock, MapPin, Music } from 'lucide-react'
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Music,
+  Pencil,
+  Trash2,
+} from 'lucide-react'
 import BackButton from '@/components/ui/BackButton'
 import EventCoverModal from '@/components/agenda/EventCoverModal'
 import DeleteEventButton from '@/components/agenda/DeleteEventButton'
 import AddToCalendarButton from '@/components/agenda/AddToCalendarButton'
 import EventRsvpButtons from '@/components/agenda/EventRsvpButtons'
 
-export const metadata: Metadata = { title: 'Evento — Ministério Nova Aliança' }
+export const metadata: Metadata = {
+  title: 'Evento — Ministério Nova Aliança',
+}
 
 function formatDate(date: string) {
-  return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {
+  return new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -45,13 +54,19 @@ function PremiumCard({
       className={`relative overflow-hidden rounded-[28px] border border-brand-300/15 bg-white/[0.04] shadow-[0_0_24px_rgba(59,130,246,0.07),0_20px_60px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/45 to-transparent" />
+
       <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand-500/10 blur-2xl" />
+
       {children}
     </div>
   )
 }
 
-export default async function EventoPage({ params }: { params: { id: string } }) {
+export default async function EventoPage({
+  params,
+}: {
+  params: { id: string }
+}) {
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -104,28 +119,33 @@ export default async function EventoPage({ params }: { params: { id: string } })
     .eq('event_id', evento.id)
 
   const { data: members } = await supabase
-  .from('profiles')
-  .select('id, name, username, avatar_url, is_system')
-  .neq('name', 'Administrador')
+    .from('profiles')
+    .select('id, name, username, avatar_url, is_system')
+    .neq('name', 'Administrador')
 
   const listaRsvps = ((rsvps ?? []) as any[]).filter(
-  (rsvp) =>
-    rsvp.user?.name !== 'Administrador' &&
-    rsvp.user?.username !== 'administrador'
-)
+    (rsvp) =>
+      rsvp.user?.name !== 'Administrador' &&
+      rsvp.user?.username !== 'administrador',
+  )
+
   const listaMembers = ((members ?? []) as any[]).filter(
-  (member) =>
-    member.is_system !== true &&
-    member.name !== 'Administrador' &&
-    member.username !== 'administrador'
-)
+    (member) =>
+      member.is_system !== true &&
+      member.name !== 'Administrador' &&
+      member.username !== 'administrador',
+  )
 
-  const currentUserRsvp = listaRsvps.find((rsvp) => rsvp.user_id === user?.id)
+  const currentUserRsvp = listaRsvps.find(
+    (rsvp) => rsvp.user_id === user?.id,
+  )
 
-  const goingCount = listaRsvps.filter((rsvp) => rsvp.status === 'going').length
+  const goingCount = listaRsvps.filter(
+    (rsvp) => rsvp.status === 'going',
+  ).length
 
   const notGoingCount = listaRsvps.filter(
-    (rsvp) => rsvp.status === 'not_going'
+    (rsvp) => rsvp.status === 'not_going',
   ).length
 
   const role = (profile as { role?: string } | null)?.role
@@ -136,67 +156,104 @@ export default async function EventoPage({ params }: { params: { id: string } })
     evento.created_by === user?.id
 
   return (
-    <div className="relative min-h-screen overflow-hidden pb-8 bg-[#050816]">
+    <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-8">
       <div className="pointer-events-none absolute inset-0 z-0">
-        <div className="absolute top-20 -left-24 h-72 w-72 rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="absolute top-[430px] -right-24 h-80 w-80 rounded-full bg-brand-400/10 blur-3xl" />
+        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-brand-500/10 blur-3xl" />
+
+        <div className="absolute -right-24 top-[430px] h-80 w-80 rounded-full bg-brand-400/10 blur-3xl" />
+
         <div className="absolute bottom-20 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-brand-500/5 blur-3xl" />
       </div>
 
       <div className="relative z-10">
-        <div className="px-4 pt-10 pb-5">
+        <div className="px-4 pb-5 pt-10">
           <BackButton href="/agenda" />
 
-          <div className="mt-4">
-            <p className="text-[11px] font-black tracking-[0.24em] uppercase text-brand-400">
-              {formatEventType(evento.event_type)}
-            </p>
+          <div className="mt-4 flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brand-400">
+                {formatEventType(evento.event_type)}
+              </p>
 
-            <h1 className="text-[28px] font-black text-white leading-tight tracking-tight mt-2">
-              {evento.title}
-            </h1>
-          </div>
-
-          {podeGerenciarEvento && (
-            <div className="flex gap-2 mt-5">
-              <Link
-                href={`/agenda/${evento.id}/editar`}
-                className="flex-1 text-center border border-brand-300/15 bg-white/[0.04] text-white/75 text-sm font-semibold py-3 rounded-2xl backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all active:scale-[0.98]"
-              >
-                Editar
-              </Link>
-
-              <DeleteEventButton eventId={evento.id} />
+              <h1 className="mt-2 text-[28px] font-black leading-tight tracking-tight text-white">
+                {evento.title}
+              </h1>
             </div>
-          )}
+
+            {podeGerenciarEvento && (
+              <div className="flex shrink-0 items-center gap-2">
+                <Link
+                  href={`/agenda/${evento.id}/editar`}
+                  aria-label="Editar evento"
+                  title="Editar evento"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-brand-300/15 bg-white/[0.05] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl transition-all active:scale-95 hover:bg-white/[0.08] hover:text-white"
+                >
+                  <Pencil size={18} />
+                </Link>
+
+                <div
+                  className="
+                    relative h-11 w-11 shrink-0
+                    [&_button]:h-11
+                    [&_button]:w-11
+                    [&_button]:min-w-0
+                    [&_button]:rounded-2xl
+                    [&_button]:border
+                    [&_button]:border-red-400/20
+                    [&_button]:bg-red-500/10
+                    [&_button]:p-0
+                    [&_button]:text-[0px]
+                    [&_button]:text-transparent
+                    [&_button]:shadow-none
+                    [&_button]:transition-all
+                    [&_button]:active:scale-95
+                  "
+                >
+                  <DeleteEventButton eventId={evento.id} />
+
+                  <Trash2
+                    size={18}
+                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-red-400"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {evento.cover_url && (
-          <div className="px-4 mb-5">
+          <div className="mb-5 px-4">
             <div className="relative overflow-hidden rounded-[30px] border border-brand-300/15 shadow-[0_0_28px_rgba(59,130,246,0.10),0_20px_60px_rgba(0,0,0,0.28)]">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-brand-300/50 to-transparent" />
-              <EventCoverModal src={evento.cover_url} alt={evento.title} />
+
+              <EventCoverModal
+                src={evento.cover_url}
+                alt={evento.title}
+              />
             </div>
           </div>
         )}
 
-        <div className="px-4 space-y-4">
-          <PremiumCard className="p-4 space-y-3">
+        <div className="space-y-4 px-4">
+          <PremiumCard className="space-y-3 p-4">
             <p className="relative flex items-center gap-3 text-[14px] text-white/75">
-              <Calendar size={16} className="text-brand-400" />
+              <Calendar size={16} className="shrink-0 text-brand-400" />
+
               {formatDate(evento.event_date)}
             </p>
 
             {evento.event_time && (
               <p className="relative flex items-center gap-3 text-[14px] text-white/75">
-                <Clock size={16} className="text-brand-400" />
+                <Clock size={16} className="shrink-0 text-brand-400" />
+
                 {evento.event_time.slice(0, 5)}
               </p>
             )}
 
             {evento.location && (
               <p className="relative flex items-center gap-3 text-[14px] text-white/75">
-                <MapPin size={16} className="text-brand-400" />
+                <MapPin size={16} className="shrink-0 text-brand-400" />
+
                 {evento.location}
               </p>
             )}
@@ -209,22 +266,25 @@ export default async function EventoPage({ params }: { params: { id: string } })
             >
               <PremiumCard className="p-4">
                 <div className="relative flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-300/20 flex items-center justify-center text-brand-300 shrink-0">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-brand-300/20 bg-brand-500/15 text-brand-300">
                     <Music size={20} />
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-black tracking-[0.22em] uppercase text-brand-400 mb-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="mb-1 text-[11px] font-black uppercase tracking-[0.22em] text-brand-400">
                       Repertório deste evento
                     </p>
 
-                    <h2 className="text-[16px] font-black text-white truncate">
+                    <h2 className="truncate text-[16px] font-black text-white">
                       {repertorioAtual.title}
                     </h2>
 
-                    <p className="text-[12px] text-white/40 mt-1">
+                    <p className="mt-1 text-[12px] text-white/40">
                       {repertorioAtual.songs?.length ?? 0} louvor
-                      {(repertorioAtual.songs?.length ?? 0) === 1 ? '' : 'es'} preparado
+                      {(repertorioAtual.songs?.length ?? 0) === 1
+                        ? ''
+                        : 'es'}{' '}
+                      preparado
                       {(repertorioAtual.songs?.length ?? 0) === 1 ? '' : 's'}
                     </p>
                   </div>
@@ -250,17 +310,17 @@ export default async function EventoPage({ params }: { params: { id: string } })
             time={evento.event_time}
           />
 
-          <p className="text-[11px] text-white/30 text-center -mt-1">
+          <p className="-mt-1 text-center text-[11px] text-white/30">
             Compatível com Google Agenda, Apple Calendário e Outlook.
           </p>
 
           {evento.description && (
             <PremiumCard className="p-4">
-              <p className="relative text-[11px] font-black tracking-[0.24em] uppercase text-white/35 mb-2">
+              <p className="relative mb-2 text-[11px] font-black uppercase tracking-[0.24em] text-white/35">
                 Sobre o evento
               </p>
 
-              <p className="relative text-[14px] text-white/70 leading-relaxed whitespace-pre-line">
+              <p className="relative whitespace-pre-line text-[14px] leading-relaxed text-white/70">
                 {evento.description}
               </p>
             </PremiumCard>

@@ -1,42 +1,79 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import {
   Calendar,
+  ChevronRight,
   Clock,
   MapPin,
   Music2,
   Plus,
-  ChevronRight,
-  Sparkles,
-  ListChecks,
   UsersRound,
 } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import AgendaCalendar from '@/components/agenda/AgendaCalendar'
 
-export const metadata: Metadata = { title: 'Agenda — Ministério Nova Aliança' }
+export const metadata: Metadata = {
+  title: 'Agenda — Ministério Nova Aliança',
+}
 
-function formatDate(date?: string | null) {
+function createSafeDate(date?: string | null) {
   if (!date) return null
 
-  return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {
+  return new Date(`${date}T12:00:00`)
+}
+
+function formatDate(date?: string | null) {
+  const parsedDate = createSafeDate(date)
+
+  if (!parsedDate) return null
+
+  return parsedDate.toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   })
 }
 
-function formatShortDate(date?: string | null) {
-  if (!date) return null
+function formatMonth(date?: string | null) {
+  const parsedDate = createSafeDate(date)
 
-  return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {
-    day: 'numeric',
-    month: 'short',
+  if (!parsedDate) return ''
+
+  const formatted = parsedDate.toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+  })
+
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+}
+
+function formatDay(date?: string | null) {
+  const parsedDate = createSafeDate(date)
+
+  if (!parsedDate) return '--'
+
+  return parsedDate.toLocaleDateString('pt-BR', {
+    day: '2-digit',
   })
 }
 
+function formatWeekday(date?: string | null) {
+  const parsedDate = createSafeDate(date)
+
+  if (!parsedDate) return ''
+
+  return parsedDate
+    .toLocaleDateString('pt-BR', {
+      weekday: 'short',
+    })
+    .replace('.', '')
+    .slice(0, 3)
+    .toUpperCase()
+}
+
 function formatEventType(type?: string | null) {
-  const tipos: Record<string, string> = {
+  const types: Record<string, string> = {
     culto: 'Culto',
     santa_ceia: 'Santa Ceia',
     congresso: 'Congresso',
@@ -45,24 +82,53 @@ function formatEventType(type?: string | null) {
     outro: 'Outro',
   }
 
-  return tipos[type ?? ''] ?? type ?? 'Evento'
+  return types[type ?? ''] ?? type ?? 'Evento'
 }
 
-function PremiumCard({
-  children,
-  className = '',
+function getDayDifference(from: string, to?: string | null) {
+  if (!to) return null
+
+  const [fromYear, fromMonth, fromDay] = from.split('-').map(Number)
+  const [toYear, toMonth, toDay] = to.split('-').map(Number)
+
+  const fromTime = Date.UTC(fromYear, fromMonth - 1, fromDay)
+  const toTime = Date.UTC(toYear, toMonth - 1, toDay)
+
+  return Math.round((toTime - fromTime) / 86_400_000)
+}
+
+function getAgendaMessage({
+  eventsToday,
+  nextEventDate,
+  today,
 }: {
-  children: React.ReactNode
-  className?: string
+  eventsToday: number
+  nextEventDate?: string | null
+  today: string
 }) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-[28px] border border-brand-300/15 bg-white/[0.04] shadow-[0_18px_45px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl ${className}`}
-    >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/45 to-transparent" />
-      {children}
-    </div>
-  )
+  if (eventsToday === 1) {
+    return 'Você tem 1 evento hoje.'
+  }
+
+  if (eventsToday > 1) {
+    return `Você tem ${eventsToday} eventos hoje.`
+  }
+
+  if (!nextEventDate) {
+    return 'Nenhum evento agendado no momento.'
+  }
+
+  const difference = getDayDifference(today, nextEventDate)
+
+  if (difference === 1) {
+    return 'Seu próximo evento é amanhã.'
+  }
+
+  if (difference && difference > 1) {
+    return `Seu próximo evento é em ${difference} dias.`
+  }
+
+  return 'Confira os próximos encontros.'
 }
 
 export default async function AgendaPage() {
@@ -72,14 +138,18 @@ export default async function AgendaPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) {
+    redirect('/login')
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
 
   const role = (profile as { role?: string } | null)?.role
-  const podeGerir = ['admin', 'leader'].includes(role ?? '')
+  const canManage = ['admin', 'leader'].includes(role ?? '')
 
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
@@ -101,7 +171,7 @@ export default async function AgendaPage() {
     .order('event_date', { ascending: true })
     .order('event_time', { ascending: true })
 
-  const listaEvents = (events ?? []) as any[]
+  const eventList = (events ?? []) as any[]
 
   const { data: worshipSets } = await supabase
     .from('worship_sets')
@@ -122,302 +192,476 @@ export default async function AgendaPage() {
     .order('worship_date', { ascending: true })
     .order('created_at', { ascending: false })
 
-  const listaWorshipSets = (worshipSets ?? []) as any[]
+  const worshipSetList = (worshipSets ?? []) as any[]
 
-  const nextEvent = listaEvents[0] ?? null
+  const nextEvent = eventList[0] ?? null
 
   const nextWorshipSet =
-    listaWorshipSets.find((set) => {
+    worshipSetList.find((set) => {
       const date = set.event?.event_date ?? set.worship_date
       return date && date >= today
     }) ?? null
 
-  const eventosHoje = listaEvents.filter((event: any) => event.event_date === today)
+  const eventsToday = eventList.filter(
+    (event) => event.event_date === today
+  ).length
 
-  const totalConfirmados = listaEvents.reduce((acc: number, event: any) => {
-    return acc + ((event.rsvps ?? []).filter((rsvp: any) => rsvp.status === 'going').length ?? 0)
-  }, 0)
+  const agendaMessage = getAgendaMessage({
+    eventsToday,
+    nextEventDate: nextEvent?.event_date,
+    today,
+  })
+
+  const nextEventGoingCount =
+    nextEvent?.rsvps?.filter((rsvp: any) => rsvp.status === 'going')
+      .length ?? 0
+
+  const groupedEvents = eventList.reduce<Record<string, any[]>>(
+    (groups, event) => {
+      const monthKey = event.event_date?.slice(0, 7) ?? 'sem-data'
+
+      if (!groups[monthKey]) {
+        groups[monthKey] = []
+      }
+
+      groups[monthKey].push(event)
+
+      return groups
+    },
+    {}
+  )
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-52">
-      <div className="pointer-events-none absolute inset-0 z-0">
-        <div className="absolute top-20 -left-24 h-72 w-72 rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="absolute top-[430px] -right-24 h-80 w-80 rounded-full bg-brand-400/10 blur-3xl" />
-        <div className="absolute bottom-20 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-brand-500/5 blur-3xl" />
+    <main className="relative min-h-screen overflow-hidden bg-[#050816] pb-48">
+      {/* Luzes de fundo */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-28 top-20 h-72 w-72 rounded-full bg-brand-500/[0.09] blur-3xl" />
+
+        <div className="absolute -right-32 top-[420px] h-80 w-80 rounded-full bg-brand-400/[0.07] blur-3xl" />
       </div>
 
       <div className="relative z-10">
-        <div className="px-5 pt-12 pb-5">
+        {/* Cabeçalho */}
+        <header className="px-5 pb-6 pt-12">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-black tracking-[0.24em] uppercase text-brand-400">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-400">
                 Ministério Nova Aliança
               </p>
 
-              <h1 className="text-[30px] font-black text-white leading-tight tracking-tight mt-1">
+              <h1 className="mt-1 text-[31px] font-black leading-tight tracking-tight text-white">
                 Agenda
               </h1>
 
-              <p className="text-white/40 text-sm mt-2 leading-relaxed">
-                Acompanhe cultos, eventos, repertórios e confirme sua presença.
+              <p className="mt-2 text-sm leading-relaxed text-white/45">
+                {agendaMessage}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/louvores"
+                aria-label="Abrir repertórios"
+                className="
+                  flex h-11 w-11 items-center justify-center
+                  rounded-full border border-white/[0.09]
+                  bg-white/[0.045] text-white/60
+                  backdrop-blur-xl transition
+                  active:scale-95 active:bg-white/[0.08]
+                "
+              >
+                <Music2 size={18} />
+              </Link>
 
-               <Link
-    href="/louvores"
-    className="shrink-0 w-11 h-11 rounded-full border border-brand-300/25 bg-brand-500/15 backdrop-blur-xl flex items-center justify-center text-brand-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 active:scale-95"
-  >
-    <Music2 size={19} />
-  </Link>
-              <AgendaCalendar events={listaEvents} />
+              <AgendaCalendar events={eventList} />
 
-              {podeGerir && (
+              {canManage && (
                 <Link
                   href="/agenda/criar"
-                  className="shrink-0 w-11 h-11 rounded-full border border-brand-300/25 bg-brand-500/15 backdrop-blur-xl flex items-center justify-center text-brand-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-300 active:scale-95"
+                  aria-label="Criar evento"
+                  className="
+                    flex h-11 w-11 items-center justify-center
+                    rounded-full border border-brand-300/25
+                    bg-brand-500/15 text-brand-300
+                    backdrop-blur-xl transition
+                    active:scale-95 active:bg-brand-500/25
+                  "
                 >
                   <Plus size={19} />
                 </Link>
               )}
             </div>
           </div>
-        </div>
+        </header>
 
-        <div className="px-4 space-y-5">
-          <div className="grid grid-cols-3 gap-2">
-            <PremiumCard className="p-3 text-center">
-              <Calendar size={17} className="relative mx-auto mb-1 text-brand-300" />
-              <p className="relative text-[18px] font-black text-white">
-                {listaEvents.length}
-              </p>
-              <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
-                Eventos
-              </p>
-            </PremiumCard>
-
-            <PremiumCard className="p-3 text-center">
-              <Sparkles size={17} className="relative mx-auto mb-1 text-amber-300" />
-              <p className="relative text-[18px] font-black text-white">
-                {eventosHoje.length}
-              </p>
-              <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
-                Hoje
-              </p>
-            </PremiumCard>
-
-            <PremiumCard className="p-3 text-center">
-              <UsersRound size={17} className="relative mx-auto mb-1 text-emerald-300" />
-              <p className="relative text-[18px] font-black text-white">
-                {totalConfirmados}
-              </p>
-              <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
-                Confirmados
-              </p>
-            </PremiumCard>
-          </div>
-
+        <div className="space-y-8 px-4">
+          {/* Próximo evento */}
           {nextEvent && (
-            <Link
-              href={`/agenda/${nextEvent.id}`}
-              className="block transition-all duration-300 active:scale-[0.985]"
-            >
-              <div className="relative overflow-hidden rounded-[34px] border border-brand-300/25 bg-gradient-to-br from-brand-500/90 via-brand-500/75 to-brand-700/90 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)]">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent" />
+            <section>
+              <p className="mb-3 px-1 text-[10px] font-black uppercase tracking-[0.23em] text-white/35">
+                Próximo evento
+              </p>
 
-                <div className="relative">
-                  <div className="mb-5 flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-white/75 text-xs font-black uppercase tracking-widest">
-                        Próximo evento
-                      </p>
+              <Link
+                href={`/agenda/${nextEvent.id}`}
+                className="block transition active:scale-[0.985]"
+              >
+                <article
+                  className="
+                    relative overflow-hidden rounded-[28px]
+                    border border-brand-300/20
+                    bg-gradient-to-br
+                    from-brand-500/[0.22]
+                    via-white/[0.055]
+                    to-white/[0.025]
+                    p-5 backdrop-blur-xl
+                  "
+                >
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-200/55 to-transparent" />
 
-                      <h2 className="text-white text-2xl font-black mt-2 leading-tight">
-                        {nextEvent.title}
-                      </h2>
+                  <div className="relative">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-brand-300 shadow-[0_0_10px_rgba(147,197,253,0.8)]" />
+
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-300">
+                            {nextEvent.event_date === today
+                              ? 'Acontece hoje'
+                              : formatEventType(nextEvent.event_type)}
+                          </p>
+                        </div>
+
+                        <h2 className="text-[21px] font-black leading-tight text-white">
+                          {nextEvent.title}
+                        </h2>
+                      </div>
+
+                      <ChevronRight
+                        size={18}
+                        className="mt-1 shrink-0 text-white/30"
+                      />
                     </div>
 
-                    <div className="rounded-full border border-white/20 bg-white/15 px-3 py-1">
-                      <p className="text-white text-xs font-black">
-                        {formatEventType(nextEvent.event_type)}
+                    <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                      <p className="flex items-center gap-2 text-[13px] font-medium text-white/65">
+                        <Calendar
+                          size={14}
+                          className="shrink-0 text-brand-300"
+                        />
+
+                        <span className="first-letter:uppercase">
+                          {formatDate(nextEvent.event_date)}
+                        </span>
                       </p>
+
+                      {nextEvent.event_time && (
+                        <p className="flex items-center gap-2 text-[13px] font-medium text-white/65">
+                          <Clock
+                            size={14}
+                            className="shrink-0 text-brand-300"
+                          />
+
+                          {nextEvent.event_time.slice(0, 5)}
+                        </p>
+                      )}
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="flex items-center gap-2 text-white/75 text-sm">
-                      <Calendar size={15} />
-                      {formatDate(nextEvent.event_date)}
-                    </p>
-
-                    {nextEvent.event_time && (
-                      <p className="flex items-center gap-2 text-white/70 text-sm">
-                        <Clock size={15} />
-                        {nextEvent.event_time.slice(0, 5)}
-                      </p>
-                    )}
 
                     {nextEvent.location && (
-                      <p className="flex items-center gap-2 text-white/70 text-sm">
-                        <MapPin size={15} />
-                        {nextEvent.location}
+                      <p className="mt-2 flex items-center gap-2 truncate text-[13px] text-white/45">
+                        <MapPin
+                          size={14}
+                          className="shrink-0 text-brand-300"
+                        />
+
+                        <span className="truncate">
+                          {nextEvent.location}
+                        </span>
                       </p>
                     )}
+
+                    <div className="mt-5 flex items-center justify-between border-t border-white/[0.07] pt-4">
+                      <div className="flex items-center gap-2">
+                        <UsersRound
+                          size={15}
+                          className="text-white/35"
+                        />
+
+                        <p className="text-xs font-semibold text-white/45">
+                          {nextEventGoingCount === 1
+                            ? '1 confirmado'
+                            : `${nextEventGoingCount} confirmados`}
+                        </p>
+                      </div>
+
+                      <p className="text-xs font-bold text-brand-300">
+                        Ver e confirmar
+                      </p>
+                    </div>
                   </div>
+                </article>
+              </Link>
+            </section>
+          )}
 
-                  {nextEvent.description && (
-                    <p className="text-white/70 text-sm mt-4 leading-relaxed line-clamp-3">
-                      {nextEvent.description}
-                    </p>
-                  )}
-
-                  <div className="mt-5 flex items-center justify-between">
-                    <p className="text-white font-bold text-sm">
-                      Ver detalhes
-                    </p>
-
-                    <ChevronRight size={18} className="text-white/75" />
-                  </div>
-                </div>
+          {/* Repertório compacto */}
+          {nextWorshipSet && (
+            <Link
+              href="/louvores"
+              className="
+                flex items-center gap-3
+                border-y border-white/[0.07]
+                py-4 transition
+                active:bg-white/[0.025]
+              "
+            >
+              <div
+                className="
+                  flex h-10 w-10 shrink-0 items-center justify-center
+                  rounded-2xl bg-brand-500/10 text-brand-300
+                "
+              >
+                <Music2 size={18} />
               </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-400">
+                  Próximo repertório
+                </p>
+
+                <p className="mt-1 truncate text-sm font-bold text-white">
+                  {nextWorshipSet.title}
+                </p>
+
+                <p className="mt-0.5 truncate text-xs text-white/35">
+                  {nextWorshipSet.event?.title ??
+                    formatDate(nextWorshipSet.worship_date)}
+
+                  {' • '}
+
+                  {nextWorshipSet.songs?.length ?? 0}{' '}
+                  {(nextWorshipSet.songs?.length ?? 0) === 1
+                    ? 'louvor'
+                    : 'louvores'}
+                </p>
+              </div>
+
+              <ChevronRight
+                size={17}
+                className="shrink-0 text-white/25"
+              />
             </Link>
           )}
 
-          <Link
-            href="/louvores"
-            className="block transition-all duration-300 active:scale-[0.985]"
-          >
-            <PremiumCard className="p-4">
-              <div className="relative flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-300/20 flex items-center justify-center text-brand-300 shrink-0">
-                  <Music2 size={20} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-black tracking-[0.22em] uppercase text-brand-400 mb-1">
-                    Louvores
-                  </p>
-
-                  <h2 className="text-[16px] font-black text-white truncate">
-                    {nextWorshipSet ? nextWorshipSet.title : 'Repertórios da igreja'}
-                  </h2>
-
-                  <p className="text-[12px] text-white/40 mt-1 truncate">
-                    {nextWorshipSet
-                      ? `${
-                          nextWorshipSet.event?.title ??
-                          formatDate(nextWorshipSet.worship_date)
-                        } • ${nextWorshipSet.songs?.length ?? 0} louvor${
-                          (nextWorshipSet.songs?.length ?? 0) === 1 ? '' : 'es'
-                        }`
-                      : 'Veja os louvores preparados para os cultos.'}
-                  </p>
-                </div>
-
-                <ChevronRight size={17} className="text-white/25" />
-              </div>
-            </PremiumCard>
-          </Link>
-
+          {/* Linha do tempo */}
           <section>
-            <div className="mb-3 flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <ListChecks size={14} className="text-brand-400" />
-                <p className="text-[11px] font-black tracking-[0.24em] uppercase text-white/35">
-                  Próximos eventos
+            <div className="mb-5 flex items-end justify-between px-1">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.23em] text-brand-400">
+                  Calendário
                 </p>
+
+                <h2 className="mt-1 text-xl font-black text-white">
+                  Próximos eventos
+                </h2>
               </div>
 
-              <p className="text-[11px] font-black text-white/30">
-                {listaEvents.length}
+              <p className="text-xs font-bold text-white/30">
+                {eventList.length}
               </p>
             </div>
 
-            {listaEvents.length === 0 ? (
-              <PremiumCard className="p-8 text-center">
-                <div className="relative w-14 h-14 rounded-2xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center mx-auto mb-3">
-                  <Calendar size={24} className="text-white/30" />
+            {eventList.length === 0 ? (
+              <div
+                className="
+                  rounded-[26px] border border-white/[0.08]
+                  bg-white/[0.035] px-6 py-10
+                  text-center backdrop-blur-xl
+                "
+              >
+                <div
+                  className="
+                    mx-auto flex h-14 w-14 items-center
+                    justify-center rounded-2xl
+                    bg-white/[0.05] text-white/25
+                  "
+                >
+                  <Calendar size={24} />
                 </div>
 
-                <p className="relative text-white/60 text-sm font-semibold">
-                  Nenhum evento agendado.
+                <p className="mt-4 text-sm font-bold text-white/60">
+                  Nenhum evento agendado
                 </p>
 
-                <p className="relative text-white/30 text-xs mt-1">
-                  Quando houver eventos, eles aparecerão aqui.
+                <p className="mt-1 text-xs leading-relaxed text-white/30">
+                  Os próximos cultos e encontros aparecerão aqui.
                 </p>
-              </PremiumCard>
+
+                {canManage && (
+                  <Link
+                    href="/agenda/criar"
+                    className="
+                      mt-5 inline-flex h-10 items-center gap-2
+                      rounded-full bg-brand-500/15 px-4
+                      text-xs font-bold text-brand-300
+                    "
+                  >
+                    <Plus size={15} />
+                    Criar evento
+                  </Link>
+                )}
+              </div>
             ) : (
-              <div className="space-y-3">
-                {listaEvents.map((event: any) => {
-                  const goingCount =
-                    event.rsvps?.filter((rsvp: any) => rsvp.status === 'going')
-                      .length ?? 0
+              <div className="space-y-8">
+                {Object.entries(groupedEvents).map(
+                  ([monthKey, monthEvents]) => (
+                    <div key={monthKey}>
+                      <p className="mb-2 px-1 text-[11px] font-black uppercase tracking-[0.18em] text-white/30">
+                        {formatMonth(monthEvents[0]?.event_date)}
+                      </p>
 
-                  return (
-                    <Link
-                      key={event.id}
-                      href={`/agenda/${event.id}`}
-                      className="block transition-all duration-300 active:scale-[0.985]"
-                    >
-                      <PremiumCard className="p-4">
-                        <div className="relative flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-300/15 flex items-center justify-center text-brand-300 shrink-0">
-                            <Calendar size={19} />
-                          </div>
+                      <div className="border-y border-white/[0.07]">
+                        {monthEvents.map((event, index) => {
+                          const goingCount =
+                            event.rsvps?.filter(
+                              (rsvp: any) => rsvp.status === 'going'
+                            ).length ?? 0
 
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-black tracking-[0.22em] uppercase text-brand-400 mb-1">
-                              {formatEventType(event.event_type)}
-                            </p>
+                          const isToday = event.event_date === today
+                          const isLast =
+                            index === monthEvents.length - 1
 
-                            <h2 className="text-[17px] font-black text-white truncate">
-                              {event.title}
-                            </h2>
+                          return (
+                            <Link
+                              key={event.id}
+                              href={`/agenda/${event.id}`}
+                              className={`
+                                group flex items-center gap-4
+                                py-4 transition
+                                active:bg-white/[0.025]
+                                ${
+                                  !isLast
+                                    ? 'border-b border-white/[0.065]'
+                                    : ''
+                                }
+                              `}
+                            >
+                              {/* Data */}
+                              <div
+                                className={`
+                                  flex h-[58px] w-[58px] shrink-0
+                                  flex-col items-center justify-center
+                                  rounded-[18px] border
+                                  ${
+                                    isToday
+                                      ? 'border-brand-300/25 bg-brand-500/15'
+                                      : 'border-white/[0.08] bg-white/[0.035]'
+                                  }
+                                `}
+                              >
+                                <span
+                                  className={`
+                                    text-[20px] font-black leading-none
+                                    ${
+                                      isToday
+                                        ? 'text-brand-200'
+                                        : 'text-white'
+                                    }
+                                  `}
+                                >
+                                  {formatDay(event.event_date)}
+                                </span>
 
-                            <div className="mt-2 space-y-1">
-                              <p className="flex items-center gap-2 text-[13px] text-white/55">
-                                <Calendar size={13} className="text-brand-400" />
-                                {formatDate(event.event_date)}
-                              </p>
+                                <span
+                                  className={`
+                                    mt-1 text-[9px] font-black tracking-[0.14em]
+                                    ${
+                                      isToday
+                                        ? 'text-brand-300'
+                                        : 'text-white/35'
+                                    }
+                                  `}
+                                >
+                                  {formatWeekday(event.event_date)}
+                                </span>
+                              </div>
 
-                              {event.event_time && (
-                                <p className="flex items-center gap-2 text-[13px] text-white/55">
-                                  <Clock size={13} className="text-brand-400" />
-                                  {event.event_time.slice(0, 5)}
+                              {/* Informações */}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start gap-2">
+                                  <h3 className="truncate text-[16px] font-black text-white">
+                                    {event.title}
+                                  </h3>
+
+                                  {isToday && (
+                                    <span
+                                      className="
+                                        mt-0.5 shrink-0 rounded-full
+                                        bg-brand-500/15 px-2 py-0.5
+                                        text-[8px] font-black uppercase
+                                        tracking-wider text-brand-300
+                                      "
+                                    >
+                                      Hoje
+                                    </span>
+                                  )}
+                                </div>
+
+                                <p className="mt-1 truncate text-[11px] font-bold text-white/30">
+                                  {formatEventType(event.event_type)}
                                 </p>
-                              )}
 
-                              {event.location && (
-                                <p className="flex items-center gap-2 text-[13px] text-white/55 truncate">
-                                  <MapPin size={13} className="text-brand-400 shrink-0" />
-                                  {event.location}
-                                </p>
-                              )}
-                            </div>
-                          </div>
+                                <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-white/45">
+                                  {event.event_time && (
+                                    <span className="font-semibold text-white/55">
+                                      {event.event_time.slice(0, 5)}
+                                    </span>
+                                  )}
 
-                          <div className="shrink-0 text-right">
-                            <p className="text-white/70 text-xs font-black">
-                              {goingCount}
-                            </p>
-                            <p className="text-white/25 text-[10px]">
-                              vão
-                            </p>
-                          </div>
+                                  {event.event_time &&
+                                    event.location && (
+                                      <span className="text-white/15">
+                                        •
+                                      </span>
+                                    )}
 
-                          <ChevronRight size={17} className="text-white/25 mt-1" />
-                        </div>
-                      </PremiumCard>
-                    </Link>
+                                  {event.location && (
+                                    <span className="truncate">
+                                      {event.location}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {goingCount > 0 && (
+                                  <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-white/30">
+                                    <UsersRound size={12} />
+
+                                    {goingCount === 1
+                                      ? '1 confirmado'
+                                      : `${goingCount} confirmados`}
+                                  </p>
+                                )}
+                              </div>
+
+                              <ChevronRight
+                                size={17}
+                                className="
+                                  shrink-0 text-white/20
+                                  transition group-active:translate-x-0.5
+                                "
+                              />
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
                   )
-                })}
+                )}
               </div>
             )}
           </section>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

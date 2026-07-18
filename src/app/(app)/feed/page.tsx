@@ -41,18 +41,24 @@ export default async function FeedPage() {
 
   if (!user) redirect('/login')
 
-  const { data: currentProfile } = await supabase
+  const now = new Date().toISOString()
+
+const [profileResult, postsResult, storiesResult] = await Promise.all([
+  supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .single(),
 
-  const perfilAtual = currentProfile as { role?: string } | null
-
-  const { data: posts } = await supabase
+  supabase
     .from('feed_posts')
     .select(`
-      *,
+      id,
+      content,
+      post_type,
+      image_url,
+      video_url,
+      created_at,
       author:profiles!inner (
         id,
         name,
@@ -79,10 +85,9 @@ export default async function FeedPage() {
     `)
     .eq('author.is_system', false)
     .order('created_at', { ascending: false })
+    .limit(10),
 
-  const listaPosts = (posts ?? []) as any[]
-
-  const { data: stories } = await supabase
+  supabase
     .from('feed_stories')
     .select(`
       id,
@@ -118,10 +123,14 @@ export default async function FeedPage() {
       )
     `)
     .eq('author.is_system', false)
-    .gt('expires_at', new Date().toISOString())
+    .gt('expires_at', now)
     .order('created_at', { ascending: false })
+    .limit(30),
+])
 
-  const listaStories = (stories ?? []) as any[]
+const perfilAtual = profileResult.data as { role?: string } | null
+const listaPosts = (postsResult.data ?? []) as any[]
+const listaStories = (storiesResult.data ?? []) as any[]
 
   return (
     <div className="relative min-h-screen overflow-hidden pb-8 bg-[#050816]">

@@ -27,9 +27,20 @@ export default async function CriarPalavraPage() {
 
   const role = (profile as { role?: string } | null)?.role
 
-  if (!['admin', 'leader'].includes(role ?? '')) redirect('/palavra')
+const today = new Date().toISOString().split('T')[0]
 
-  const today = new Date().toISOString().split('T')[0]
+const { getResponsavelPalavra } = await import('@/lib/palavra/actions')
+
+const responsavelHoje = await getResponsavelPalavra(today)
+
+const podePublicar =
+  role === 'admin' ||
+  responsavelHoje?.user?.id === user.id ||
+  responsavelHoje?.pending_profile?.linked_user_id === user.id
+
+if (!podePublicar) {
+  redirect('/palavra')
+}
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] pb-8">

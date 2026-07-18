@@ -3,17 +3,19 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import {
   Calendar,
-  Clock,
-  MapPin,
-  Music,
-  Play,
-  Eye,
-  Edit2,
   CheckCircle2,
-  XCircle,
-  UsersRound,
-  ListMusic,
+  ChevronDown,
+  Clock,
+  Edit2,
   ExternalLink,
+  Eye,
+  ListMusic,
+  MapPin,
+  Music2,
+  Play,
+  Trash2,
+  UsersRound,
+  XCircle,
 } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import BackButton from '@/components/ui/BackButton'
@@ -31,40 +33,32 @@ function getYoutubeId(url?: string | null) {
 
   const regex =
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/]+)/
+
   return url.match(regex)?.[1] ?? null
 }
 
-function formatDate(date?: string | null) {
+function createSafeDate(date?: string | null) {
   if (!date) return null
 
-  return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {
+  return new Date(`${date}T12:00:00`)
+}
+
+function formatDate(date?: string | null) {
+  const parsedDate = createSafeDate(date)
+
+  if (!parsedDate) return null
+
+  return parsedDate.toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   })
 }
 
-function PremiumCard({
-  children,
-  className = '',
-}: {
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-[28px] border border-brand-300/15 bg-white/[0.04] shadow-[0_18px_45px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-xl ${className}`}
-    >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/45 to-transparent" />
-      {children}
-    </div>
-  )
-}
-
 function MemberRow({ member }: { member: any }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-white/[0.08] border border-white/[0.08]">
+    <div className="flex min-w-0 items-center gap-2.5">
+      <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/[0.08] bg-white/[0.06]">
         {member.avatar_url ? (
           <img
             src={member.avatar_url}
@@ -73,12 +67,12 @@ function MemberRow({ member }: { member: any }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[10px] font-black text-white/45">
-            {(member.name ?? 'M').slice(0, 1)}
+            {(member.name ?? 'M').slice(0, 1).toUpperCase()}
           </div>
         )}
       </div>
 
-      <p className="truncate text-[12px] font-semibold text-white/70">
+      <p className="truncate text-[12px] font-semibold text-white/65">
         {member.name}
       </p>
     </div>
@@ -86,11 +80,13 @@ function MemberRow({ member }: { member: any }) {
 }
 
 function ProgressBar({ value }: { value: number }) {
+  const safeValue = Math.min(100, Math.max(0, value))
+
   return (
-    <div className="h-2 rounded-full bg-white/[0.08] overflow-hidden">
+    <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
       <div
-        className="h-full rounded-full bg-brand-400"
-        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+        className="h-full rounded-full bg-brand-400 transition-all"
+        style={{ width: `${safeValue}%` }}
       />
     </div>
   )
@@ -107,7 +103,9 @@ export default async function RepertorioPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (!user) {
+    redirect('/login')
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -116,7 +114,7 @@ export default async function RepertorioPage({
     .single()
 
   const role = (profile as { role?: string } | null)?.role
-  const podeGerir = ['admin', 'leader'].includes(role ?? '')
+  const canManage = ['admin', 'leader'].includes(role ?? '')
 
   const { data: set } = await supabase
     .from('worship_sets')
@@ -144,7 +142,9 @@ export default async function RepertorioPage({
     .eq('id', params.id)
     .single()
 
-  if (!set) notFound()
+  if (!set) {
+    notFound()
+  }
 
   const repertorio = set as any
 
@@ -166,340 +166,565 @@ export default async function RepertorioPage({
   )
 
   const date = repertorio.event?.event_date ?? repertorio.worship_date
-  const totalPossivel = songs.length * members.length
 
-  const totalVisualizacoes = songs.reduce((total: number, song: any) => {
-    const seenCount =
+  const totalPossibleViews = songs.length * members.length
+
+  const totalViews = songs.reduce((total: number, song: any) => {
+    const viewed =
       song.views?.filter((view: any) => view.status === 'seen').length ?? 0
 
-    return total + seenCount
+    return total + viewed
   }, 0)
 
-  const progressoGeral =
-    totalPossivel > 0 ? Math.round((totalVisualizacoes / totalPossivel) * 100) : 0
+  const generalProgress =
+    totalPossibleViews > 0
+      ? Math.round((totalViews / totalPossibleViews) * 100)
+      : 0
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050816] px-4 pt-10 pb-52">
-      <div className="pointer-events-none absolute inset-0 z-0">
-        <div className="absolute top-20 -left-24 h-72 w-72 rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="absolute top-[430px] -right-24 h-80 w-80 rounded-full bg-brand-400/10 blur-3xl" />
-        <div className="absolute bottom-20 left-1/2 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-brand-500/5 blur-3xl" />
+    <main className="relative min-h-screen overflow-hidden bg-[#050816] pb-48">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-28 top-16 h-72 w-72 rounded-full bg-brand-500/[0.09] blur-3xl" />
+
+        <div className="absolute -right-28 top-[420px] h-80 w-80 rounded-full bg-brand-400/[0.07] blur-3xl" />
       </div>
 
-      <div className="relative z-10">
-        <BackButton href="/louvores" />
+      <div className="relative z-10 px-4 pt-10">
+        <header>
+          <div className="flex items-center justify-between gap-3">
+            <BackButton href="/louvores" />
 
-        <section className="mt-4 relative overflow-hidden rounded-[34px] border border-brand-300/20 bg-gradient-to-br from-brand-500/90 via-brand-500/70 to-brand-700/90 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)]">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent" />
+            {canManage && (
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/louvores/${repertorio.id}/editar`}
+                  aria-label="Editar repertório"
+                  className="
+                    flex h-11 w-11 items-center justify-center
+                    rounded-full border border-white/[0.09]
+                    bg-white/[0.045] text-white/60
+                    backdrop-blur-xl transition
+                    active:scale-95 active:bg-white/[0.08]
+                  "
+                >
+                  <Edit2 size={17} />
+                </Link>
 
-          <div className="relative">
-            <p className="text-white/75 text-[11px] uppercase tracking-[0.28em] font-black">
-              Repertório
-            </p>
+                <form
+                  action={excluirRepertorio.bind(null, repertorio.id) as any}
+                >
+                  <button
+                    type="submit"
+                    aria-label="Excluir repertório"
+                    className="
+                      flex h-11 w-11 items-center justify-center
+                      rounded-full border border-red-400/20
+                      bg-red-500/10 text-red-400
+                      backdrop-blur-xl transition
+                      active:scale-95 active:bg-red-500/20
+                    "
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
 
-            <h1 className="text-[30px] font-black text-white mt-2 tracking-tight leading-tight">
+          <div className="mt-7">
+            <div className="flex items-center gap-2">
+              <Music2 size={14} className="text-brand-400" />
+
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-400">
+                Repertório
+              </p>
+            </div>
+
+            <h1 className="mt-2 text-[30px] font-black leading-tight tracking-tight text-white">
               {repertorio.title}
             </h1>
 
             {repertorio.description && (
-              <p className="text-white/75 text-sm mt-3 leading-relaxed">
+              <p className="mt-3 max-w-xl whitespace-pre-line text-sm leading-relaxed text-white/50">
                 {repertorio.description}
               </p>
             )}
 
             <div className="mt-5 space-y-2">
-              <p className="flex items-center gap-2 text-white/75 text-sm">
-                <Calendar size={15} />
-                {repertorio.event?.title
-                  ? `${repertorio.event.title} • ${formatDate(
-                      repertorio.event.event_date
-                    )}`
-                  : formatDate(date)}
-              </p>
-
-              {repertorio.event?.event_time && (
-                <p className="flex items-center gap-2 text-white/70 text-sm">
-                  <Clock size={15} />
-                  {repertorio.event.event_time.slice(0, 5)}
+              {repertorio.event?.title && (
+                <p className="text-[14px] font-bold text-white/75">
+                  {repertorio.event.title}
                 </p>
               )}
 
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {date && (
+                  <p className="flex items-center gap-2 text-[12px] font-medium text-white/45">
+                    <Calendar
+                      size={14}
+                      className="shrink-0 text-brand-300"
+                    />
+
+                    <span className="first-letter:uppercase">
+                      {formatDate(date)}
+                    </span>
+                  </p>
+                )}
+
+                {repertorio.event?.event_time && (
+                  <p className="flex items-center gap-2 text-[12px] font-medium text-white/45">
+                    <Clock
+                      size={14}
+                      className="shrink-0 text-brand-300"
+                    />
+
+                    {repertorio.event.event_time.slice(0, 5)}
+                  </p>
+                )}
+              </div>
+
               {repertorio.event?.location && (
-                <p className="flex items-center gap-2 text-white/70 text-sm">
-                  <MapPin size={15} />
-                  {repertorio.event.location}
+                <p className="flex items-center gap-2 truncate text-[12px] text-white/35">
+                  <MapPin
+                    size={14}
+                    className="shrink-0 text-brand-300"
+                  />
+
+                  <span className="truncate">
+                    {repertorio.event.location}
+                  </span>
                 </p>
               )}
             </div>
+          </div>
+        </header>
+
+        <section
+          className="
+            mt-7 grid grid-cols-3 divide-x divide-white/[0.07]
+            border-y border-white/[0.07] py-4
+          "
+        >
+          <div className="px-2 text-center">
+            <p className="text-[18px] font-black text-white">
+              {songs.length}
+            </p>
+
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/30">
+              Louvores
+            </p>
+          </div>
+
+          <div className="px-2 text-center">
+            <p className="text-[18px] font-black text-white">
+              {totalViews}
+            </p>
+
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/30">
+              Vistos
+            </p>
+          </div>
+
+          <div className="px-2 text-center">
+            <p className="text-[18px] font-black text-white">
+              {generalProgress}%
+            </p>
+
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/30">
+              Progresso
+            </p>
           </div>
         </section>
 
-        {podeGerir && (
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <Link
-              href={`/louvores/${repertorio.id}/editar`}
-              className="h-12 rounded-2xl border border-brand-300/20 bg-white/[0.04] text-white/75 font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-            >
-              <Edit2 size={16} />
-              Editar
-            </Link>
+        {canManage && songs.length > 0 && (
+          <section className="mt-6">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-400">
+                  Acompanhamento
+                </p>
 
-            <form action={excluirRepertorio.bind(null, repertorio.id) as any}>
-              <button
-                type="submit"
-                className="w-full h-12 rounded-2xl border border-red-400/20 bg-red-500/10 text-red-400 font-bold transition-all active:scale-[0.98]"
-              >
-                Excluir
-              </button>
-            </form>
-          </div>
-        )}
-
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <PremiumCard className="p-3 text-center">
-            <ListMusic size={17} className="relative mx-auto text-brand-300 mb-1" />
-            <p className="relative text-[18px] font-black text-white">
-              {songs.length}
-            </p>
-            <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
-              Louvores
-            </p>
-          </PremiumCard>
-
-          <PremiumCard className="p-3 text-center">
-            <Eye size={17} className="relative mx-auto text-emerald-300 mb-1" />
-            <p className="relative text-[18px] font-black text-white">
-              {totalVisualizacoes}
-            </p>
-            <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
-              Vistos
-            </p>
-          </PremiumCard>
-
-          <PremiumCard className="p-3 text-center">
-            <UsersRound size={17} className="relative mx-auto text-amber-300 mb-1" />
-            <p className="relative text-[18px] font-black text-white">
-              {members.length}
-            </p>
-            <p className="relative text-[10px] font-black uppercase tracking-[0.16em] text-white/35">
-              Membros
-            </p>
-          </PremiumCard>
-        </div>
-
-        {podeGerir && songs.length > 0 && (
-          <PremiumCard className="mt-4 p-4">
-            <div className="relative">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brand-400">
-                    Acompanhamento
-                  </p>
-                  <p className="text-white/40 text-xs mt-1">
-                    Progresso geral do repertório
-                  </p>
-                </div>
-
-                <p className="text-white text-xl font-black">
-                  {progressoGeral}%
+                <p className="mt-1 text-sm font-bold text-white/70">
+                  Progresso do repertório
                 </p>
               </div>
 
-              <ProgressBar value={progressoGeral} />
-
-              <p className="text-white/35 text-[11px] mt-3">
-                {totalVisualizacoes} de {totalPossivel} confirmações possíveis.
+              <p className="text-xl font-black text-white">
+                {generalProgress}%
               </p>
             </div>
-          </PremiumCard>
+
+            <div className="mt-3">
+              <ProgressBar value={generalProgress} />
+            </div>
+
+            <p className="mt-2 text-[11px] text-white/30">
+              {totalViews} de {totalPossibleViews} visualizações possíveis
+            </p>
+          </section>
         )}
 
-        {songs.length === 0 ? (
-          <PremiumCard className="mt-5 p-8 text-center">
-            <Music size={30} className="relative text-white/25 mx-auto mb-3" />
+        <section className="mt-9">
+          <div className="mb-5 flex items-end justify-between px-1">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-400">
+                Ordem do culto
+              </p>
 
-            <p className="relative text-white font-bold">
-              Nenhum louvor adicionado
+              <h2 className="mt-1 text-xl font-black text-white">
+                Louvores
+              </h2>
+            </div>
+
+            <p className="text-xs font-bold text-white/30">
+              {songs.length}
             </p>
+          </div>
 
-            <p className="relative text-white/40 text-sm mt-1">
-              Adicione músicas para este repertório.
-            </p>
-          </PremiumCard>
-        ) : (
-          <div className="mt-6 space-y-5">
-            {songs.map((song: any, index: number) => {
-              const youtubeId = getYoutubeId(song.youtube_url)
+          {songs.length === 0 ? (
+            <div
+              className="
+                rounded-[26px] border border-white/[0.08]
+                bg-white/[0.035] px-6 py-10
+                text-center backdrop-blur-xl
+              "
+            >
+              <div
+                className="
+                  mx-auto flex h-14 w-14 items-center
+                  justify-center rounded-2xl
+                  bg-white/[0.05] text-white/25
+                "
+              >
+                <ListMusic size={24} />
+              </div>
 
-              const currentView = song.views?.find(
-                (view: any) => view.user_id === user.id
-              )
+              <p className="mt-4 text-sm font-bold text-white/60">
+                Nenhum louvor adicionado
+              </p>
 
-              const userHasSeen = currentView?.status === 'seen'
+              <p className="mt-1 text-xs leading-relaxed text-white/30">
+                Adicione as músicas que serão usadas neste repertório.
+              </p>
 
-              const seenCount =
-                song.views?.filter((view: any) => view.status === 'seen')
-                  .length ?? 0
+              {canManage && (
+                <Link
+                  href={`/louvores/${repertorio.id}/editar`}
+                  className="
+                    mt-5 inline-flex h-10 items-center gap-2
+                    rounded-full bg-brand-500/15 px-4
+                    text-xs font-bold text-brand-300
+                  "
+                >
+                  <Edit2 size={14} />
+                  Adicionar louvores
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="border-y border-white/[0.07]">
+              {songs.map((song: any, index: number) => {
+                const youtubeId = getYoutubeId(song.youtube_url)
 
-              const seenUserIds = new Set(
-                (song.views ?? [])
-                  .filter((view: any) => view.status === 'seen')
-                  .map((view: any) => view.user_id)
-              )
+                const currentView = song.views?.find(
+                  (view: any) => view.user_id === user.id
+                )
 
-              const seenMembers = members.filter((member: any) =>
-                seenUserIds.has(member.id)
-              )
+                const userHasSeen = currentView?.status === 'seen'
 
-              const notSeenMembers = members.filter(
-                (member: any) => !seenUserIds.has(member.id)
-              )
+                const seenCount =
+                  song.views?.filter(
+                    (view: any) => view.status === 'seen'
+                  ).length ?? 0
 
-              const progressoMusica =
-                members.length > 0
-                  ? Math.round((seenCount / members.length) * 100)
-                  : 0
+                const seenUserIds = new Set(
+                  (song.views ?? [])
+                    .filter((view: any) => view.status === 'seen')
+                    .map((view: any) => view.user_id)
+                )
 
-              return (
-                <PremiumCard key={song.id} className="p-4">
-                  <div className="relative">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="min-w-0">
-                        <p className="text-brand-400 text-xs font-black uppercase tracking-widest">
-                          Louvor {index + 1}
-                        </p>
+                const seenMembers = members.filter((member: any) =>
+                  seenUserIds.has(member.id)
+                )
 
-                        <h2 className="text-white text-xl font-black mt-1 leading-tight">
-                          {song.title}
-                        </h2>
+                const notSeenMembers = members.filter(
+                  (member: any) => !seenUserIds.has(member.id)
+                )
+
+                const songProgress =
+                  members.length > 0
+                    ? Math.round((seenCount / members.length) * 100)
+                    : 0
+
+                const isLastSong = index === songs.length - 1
+
+                return (
+                  <article
+                    key={song.id}
+                    className={`
+                      py-6
+                      ${
+                        !isLastSong
+                          ? 'border-b border-white/[0.07]'
+                          : ''
+                      }
+                    `}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="
+                          flex h-9 w-9 shrink-0 items-center
+                          justify-center rounded-full
+                          border border-white/[0.08]
+                          bg-white/[0.04]
+                          text-[11px] font-black text-white/40
+                        "
+                      >
+                        {index + 1}
                       </div>
 
-                      <div className="shrink-0 rounded-full bg-brand-500/15 border border-brand-300/20 px-3 py-1">
-                        <p className="text-brand-300 text-xs font-bold">
-                          {seenCount} viram
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-400">
+                              Louvor {index + 1}
+                            </p>
+
+                            <h3 className="mt-1 text-[19px] font-black leading-tight text-white">
+                              {song.title}
+                            </h3>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            <p className="text-xs font-black text-white/55">
+                              {seenCount}/{members.length}
+                            </p>
+
+                            <p className="mt-0.5 text-[9px] text-white/25">
+                              viram
+                            </p>
+                          </div>
+                        </div>
+
+                        {canManage && (
+                          <div className="mt-4">
+                            <div className="mb-2 flex items-center justify-between">
+                              <p className="text-[10px] font-semibold text-white/30">
+                                Progresso
+                              </p>
+
+                              <p className="text-[10px] font-black text-white/45">
+                                {songProgress}%
+                              </p>
+                            </div>
+
+                            <ProgressBar value={songProgress} />
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {podeGerir && (
-                      <div className="mb-4">
-                        <div className="mb-2 flex items-center justify-between">
-                          <p className="text-[11px] text-white/35 font-bold">
-                            Progresso
-                          </p>
-
-                          <p className="text-[11px] text-white/45 font-black">
-                            {progressoMusica}%
-                          </p>
+                    <div className="mt-5">
+                      {youtubeId ? (
+                        <div className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-black">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${youtubeId}`}
+                            title={song.title}
+                            className="aspect-video w-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
                         </div>
-
-                        <ProgressBar value={progressoMusica} />
-                      </div>
-                    )}
-
-                    {youtubeId ? (
-                      <div className="overflow-hidden rounded-[22px] border border-brand-300/15 bg-black shadow-[0_0_22px_rgba(59,130,246,0.10)]">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${youtubeId}`}
-                          title={song.title}
-                          className="w-full aspect-video"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
-                    ) : (
-                      <Link
-                        href={song.youtube_url ?? '#'}
-                        target="_blank"
-                        className="h-32 rounded-[22px] border border-brand-300/15 bg-white/[0.04] flex items-center justify-center text-brand-300 font-bold"
-                      >
-                        <Play size={18} className="mr-2" />
-                        Abrir louvor
-                      </Link>
-                    )}
+                      ) : song.youtube_url ? (
+                        <Link
+                          href={song.youtube_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="
+                            flex h-28 items-center justify-center
+                            rounded-[22px] border border-white/[0.08]
+                            bg-white/[0.035]
+                            text-sm font-bold text-brand-300
+                            transition active:scale-[0.985]
+                          "
+                        >
+                          <Play size={17} className="mr-2" />
+                          Abrir louvor
+                        </Link>
+                      ) : (
+                        <div
+                          className="
+                            flex h-24 items-center justify-center
+                            rounded-[22px] border border-white/[0.07]
+                            bg-white/[0.025]
+                            text-xs font-semibold text-white/25
+                          "
+                        >
+                          Vídeo não informado
+                        </div>
+                      )}
+                    </div>
 
                     {song.youtube_url && (
                       <Link
                         href={song.youtube_url}
                         target="_blank"
-                        className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.035] py-3 text-[12px] font-black text-white/55 active:scale-[0.98]"
+                        rel="noopener noreferrer"
+                        className="
+                          mt-3 flex h-11 items-center justify-center gap-2
+                          rounded-2xl border border-white/[0.08]
+                          bg-white/[0.03]
+                          text-[11px] font-black text-white/45
+                          transition active:scale-[0.985]
+                        "
                       >
-                        <ExternalLink size={14} />
+                        <ExternalLink size={13} />
                         Abrir no YouTube
                       </Link>
                     )}
 
                     {song.description && (
-                      <p className="text-white/60 text-sm leading-relaxed mt-4 whitespace-pre-line">
-                        {song.description}
-                      </p>
+                      <div className="mt-5 border-l-2 border-brand-400/30 pl-3">
+                        <p className="whitespace-pre-line text-[13px] leading-relaxed text-white/50">
+                          {song.description}
+                        </p>
+                      </div>
                     )}
 
                     <form
                       action={alternarLouvorVisto.bind(null, song.id) as any}
-                      className="mt-4"
+                      className="mt-5"
                     >
                       <button
                         type="submit"
-                        className={`w-full h-12 rounded-2xl border text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-                          userHasSeen
-                            ? 'bg-emerald-500/15 border-emerald-400/25 text-emerald-400'
-                            : 'bg-brand-500/15 border-brand-300/20 text-brand-300'
-                        }`}
+                        className={`
+                          flex h-12 w-full items-center justify-center gap-2
+                          rounded-2xl border text-sm font-bold
+                          transition active:scale-[0.985]
+                          ${
+                            userHasSeen
+                              ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-400'
+                              : 'border-brand-300/20 bg-brand-500/15 text-brand-300'
+                          }
+                        `}
                       >
-                        <Eye size={16} />
-                        {userHasSeen ? 'Desmarcar visto' : 'Marcar como visto'}
+                        {userHasSeen ? (
+                          <CheckCircle2 size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+
+                        {userHasSeen
+                          ? 'Louvor marcado como visto'
+                          : 'Marcar como visto'}
                       </button>
                     </form>
 
-                    {podeGerir && (
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-500/10 p-3">
-                          <p className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-emerald-300">
-                            <CheckCircle2 size={14} />
-                            Viram
-                          </p>
+                    {canManage && (
+                      <details className="group mt-4">
+                        <summary
+                          className="
+                            flex cursor-pointer list-none items-center
+                            justify-between rounded-2xl
+                            border border-white/[0.07]
+                            bg-white/[0.025] px-4 py-3
+                            transition active:bg-white/[0.04]
+                          "
+                        >
+                          <div className="flex items-center gap-2">
+                            <UsersRound
+                              size={14}
+                              className="text-white/35"
+                            />
 
-                          <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
-                            {seenMembers.length === 0 ? (
-                              <p className="text-[12px] text-white/35">
-                                Ninguém ainda.
+                            <p className="text-[11px] font-bold text-white/45">
+                              Ver acompanhamento dos membros
+                            </p>
+                          </div>
+
+                          <ChevronDown
+                            size={15}
+                            className="
+                              text-white/25 transition-transform
+                              group-open:rotate-180
+                            "
+                          />
+                        </summary>
+
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <div className="rounded-2xl border border-emerald-400/10 bg-emerald-500/[0.06] p-3">
+                            <div className="mb-3 flex items-center gap-2">
+                              <CheckCircle2
+                                size={13}
+                                className="text-emerald-400"
+                              />
+
+                              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                                Viram
                               </p>
-                            ) : (
-                              seenMembers.map((member: any) => (
-                                <MemberRow key={member.id} member={member} />
-                              ))
-                            )}
+
+                              <span className="ml-auto text-[10px] font-black text-emerald-300/70">
+                                {seenMembers.length}
+                              </span>
+                            </div>
+
+                            <div className="max-h-56 space-y-2.5 overflow-y-auto pr-1">
+                              {seenMembers.length === 0 ? (
+                                <p className="text-[11px] text-white/30">
+                                  Ninguém ainda.
+                                </p>
+                              ) : (
+                                seenMembers.map((member: any) => (
+                                  <MemberRow
+                                    key={member.id}
+                                    member={member}
+                                  />
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.05] p-3">
+                            <div className="mb-3 flex items-center gap-2">
+                              <XCircle
+                                size={13}
+                                className="text-red-400"
+                              />
+
+                              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-red-300">
+                                Pendentes
+                              </p>
+
+                              <span className="ml-auto text-[10px] font-black text-red-300/70">
+                                {notSeenMembers.length}
+                              </span>
+                            </div>
+
+                            <div className="max-h-56 space-y-2.5 overflow-y-auto pr-1">
+                              {notSeenMembers.length === 0 ? (
+                                <p className="text-[11px] text-white/30">
+                                  Todos viram.
+                                </p>
+                              ) : (
+                                notSeenMembers.map((member: any) => (
+                                  <MemberRow
+                                    key={member.id}
+                                    member={member}
+                                  />
+                                ))
+                              )}
+                            </div>
                           </div>
                         </div>
-
-                        <div className="rounded-2xl border border-red-400/15 bg-red-500/10 p-3">
-                          <p className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-red-300">
-                            <XCircle size={14} />
-                            Não viram
-                          </p>
-
-                          <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
-                            {notSeenMembers.length === 0 ? (
-                              <p className="text-[12px] text-white/35">
-                                Todos viram.
-                              </p>
-                            ) : (
-                              notSeenMembers.map((member: any) => (
-                                <MemberRow key={member.id} member={member} />
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      </details>
                     )}
-                  </div>
-                </PremiumCard>
-              )
-            })}
-          </div>
-        )}
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   )
 }
