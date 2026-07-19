@@ -18,8 +18,16 @@ type SelectedMedia = {
   type: 'image' | 'video'
 }
 
-export default function CreatePostForm() {
-  const [text, setText] = useState('')
+type CreatePostFormProps = {
+  initialContent?: string
+  initialPostType?: string
+}
+
+export default function CreatePostForm({
+  initialContent = '',
+  initialPostType = 'outro',
+}: CreatePostFormProps) {
+  const [text, setText] = useState(initialContent)
   const [media, setMedia] = useState<SelectedMedia | null>(null)
   const [dragging, setDragging] = useState(false)
   const [compressing, setCompressing] = useState(false)
@@ -110,9 +118,13 @@ export default function CreatePostForm() {
 
       form.append('content', text)
 
-      if (media) {
-        form.append('image', media.file)
-      }
+      if (media?.type === 'image') {
+  form.append('image', media.file)
+}
+
+if (media?.type === 'video') {
+  form.append('video', media.file)
+}
 
       const response = await fetch('/api/feed/criar', {
         method: 'POST',

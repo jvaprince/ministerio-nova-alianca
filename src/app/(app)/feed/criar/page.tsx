@@ -47,7 +47,10 @@ export default async function CriarPostFeedPage({
           </h1>
         </div>
 
-        <CreatePostForm />
+        <CreatePostForm
+  initialContent={initialContent}
+  initialPostType={initialPostType}
+/>
       </div>
     </div>
   )
