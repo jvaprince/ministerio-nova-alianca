@@ -401,13 +401,25 @@ export default function FeedStories({
 </button>
 
           <div
-            className="relative w-full h-full max-w-[430px] sm:h-auto sm:max-w-[390px] sm:aspect-[9/16] bg-black overflow-hidden sm:rounded-[28px]"
-            onPointerDown={() => setPaused(true)}
-onPointerUp={() => setPaused(false)}
-onPointerLeave={() => setPaused(false)}
-onPointerCancel={() => setPaused(false)}
-onContextMenu={(e) => e.preventDefault()}
-          >
+  className="relative w-full h-full max-w-[430px] sm:h-auto sm:max-w-[390px] sm:aspect-[9/16] bg-black overflow-hidden sm:rounded-[28px] select-none"
+  style={{
+    WebkitUserSelect: 'none',
+    WebkitTouchCallout: 'none',
+    WebkitTapHighlightColor: 'transparent',
+  }}
+  onPointerDown={(e) => {
+    e.preventDefault()
+    setPaused(true)
+  }}
+  onPointerUp={(e) => {
+    e.preventDefault()
+    setPaused(false)
+  }}
+  onPointerLeave={() => setPaused(false)}
+  onPointerCancel={() => setPaused(false)}
+  onContextMenu={(e) => e.preventDefault()}
+  onDragStart={(e) => e.preventDefault()}
+>
             <div className="absolute top-[calc(env(safe-area-inset-top)+8px)] left-3 right-3 z-40 flex gap-1">
               {activeGroup.stories.map((story, index) => (
                 <div
@@ -479,10 +491,11 @@ onContextMenu={(e) => e.preventDefault()}
 
             {activeStory.image_url && (
               <img
-                src={activeStory.image_url}
-                alt="Story"
-                className="absolute inset-0 w-full h-full object-contain bg-black"
-              />
+  src={activeStory.image_url}
+  alt="Story"
+  draggable={false}
+  className="absolute inset-0 w-full h-full object-contain bg-black select-none"
+/>
             )}
 
             {activeStory.video_url && (
