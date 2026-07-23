@@ -28,6 +28,7 @@ export default function BibleChapterExperience({
   journeyContext,
   book,
   chapter,
+  initialVerse,
   previousChapter,
   nextChapter,
   favorites,
@@ -429,6 +430,7 @@ export default function BibleChapterExperience({
           currentUserId={currentUserId}
           book={book}
           chapter={chapter}
+          initialVerse={initialVerse}
           favorites={favorites}
           notes={notes}
           highlights={highlights}

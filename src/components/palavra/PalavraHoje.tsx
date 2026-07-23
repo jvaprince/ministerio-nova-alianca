@@ -233,9 +233,9 @@ export default function PalavraHoje({
                 Reflexão
               </p>
 
-              <p className="text-[14px] leading-[1.8] text-white/75">
-                {palavra.reflection}
-              </p>
+              <p className="whitespace-pre-wrap text-[14px] leading-[1.8] text-white/75">
+  {palavra.reflection}
+</p>
             </div>
           )}
         </div>

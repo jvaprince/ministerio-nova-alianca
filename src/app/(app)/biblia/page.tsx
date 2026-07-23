@@ -437,15 +437,6 @@ export default async function BibliaPage() {
                 Seus últimos capítulos acessados.
               </p>
             </div>
-
-            {listaHistorico.length > 0 && (
-              <Link
-                href="/biblia/historico"
-                className="shrink-0 text-xs font-bold text-brand-300"
-              >
-                Ver todos
-              </Link>
-            )}
           </div>
 
           {listaHistorico.length === 0 ? (

@@ -9,10 +9,11 @@ export default async function BibleChapterPage({
 }: {
   params: { book: string; chapter: string }
   searchParams?: {
-    backToJourney?: string
-    journey?: string
-    day?: string
-  }
+  backToJourney?: string
+  journey?: string
+  day?: string
+  verse?: string
+}
 }) {
   const supabase = await createSupabaseServerClient()
 
@@ -88,6 +89,9 @@ export default async function BibleChapterPage({
 
   const journeySlug = searchParams?.journey ?? null
   const journeyDay = searchParams?.day ? Number(searchParams.day) : null
+  const initialVerse = searchParams?.verse
+  ? Number(searchParams.verse)
+  : null
 
   let journeyContext = null
 
@@ -118,6 +122,7 @@ export default async function BibleChapterPage({
       journeyContext={journeyContext}
       book={book}
       chapter={chapter}
+      initialVerse={initialVerse}
       previousChapter={previousChapter}
       nextChapter={nextChapter}
       favorites={(favorites ?? []) as any[]}

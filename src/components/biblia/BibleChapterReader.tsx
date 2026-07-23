@@ -55,6 +55,7 @@ export default function BibleChapterReader({
   currentUserId,
   book,
   chapter,
+  initialVerse = null,
   favorites,
   notes,
   highlights,
@@ -69,6 +70,7 @@ fontFamily = 'serif',
   currentUserId: string
   book: string
   chapter: number
+  initialVerse?: number | null
   favorites: any[]
   notes: any[]
   highlights: any[]
@@ -89,9 +91,18 @@ fontFamily?: 'serif' | 'sans'
   const [localFavorites, setLocalFavorites] = useState(favorites)
 
   useEffect(() => {
-    fetchBibleChapter(book, chapter).then(setData)
-    markBibleChapterAsRead(book, chapter)
-  }, [book, chapter])
+  fetchBibleChapter(book, chapter).then((chapterData) => {
+    setData(chapterData)
+
+    if (initialVerse) {
+      setSelectedVerse(initialVerse)
+    } else {
+      setSelectedVerse(null)
+    }
+  })
+
+  markBibleChapterAsRead(book, chapter)
+}, [book, chapter, initialVerse])
 
   if (!data) {
     return <p className="text-white/40 text-sm">Carregando capítulo...</p>
@@ -181,7 +192,7 @@ const matchesSearch =
               key={verse.verse}
               type="button"
               onClick={() => openVerse(verse.verse)}
-              className={`inline text-left rounded-lg transition ${
+                className={`inline text-left rounded-lg transition text-inherit ${
   matchesSearch
     ? 'bg-brand-500/25 text-white'
     : isSelected
@@ -197,7 +208,9 @@ const matchesSearch =
                 {verse.verse}
               </sup>
 
-              <span>{verse.text.trim()} </span>
+              <span className="text-inherit">
+  {verse.text.trim()}{' '}
+</span>
 
               {verseNotes.length > 0 && (
   <span className="inline-flex items-center gap-1 ml-1 align-middle rounded-full bg-brand-500/15 border border-brand-500/20 px-1.5 py-0.5">
@@ -225,7 +238,7 @@ const matchesSearch =
       </article>
 
       {selectedVerse && selectedText && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
+        <div className="fixed inset-0 z-50 bg-black/10 flex items-end">
           <div className="w-full rounded-t-[32px] bg-[#101622] border-t border-white/[0.08] max-h-[86vh] flex flex-col">
             <div className="p-5 border-b border-white/[0.06] shrink-0">
               <div className="flex items-start justify-between gap-4">
