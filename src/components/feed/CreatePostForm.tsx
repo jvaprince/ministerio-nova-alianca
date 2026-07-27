@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import imageCompression from 'browser-image-compression'
 import {
@@ -11,6 +11,7 @@ import {
   Upload,
   X,
 } from 'lucide-react'
+import { uploadMedia } from '@/lib/storage/uploadMedia'
 
 type SelectedMedia = {
   file: File
@@ -31,7 +32,7 @@ export default function CreatePostForm({
   const [media, setMedia] = useState<SelectedMedia | null>(null)
   const [dragging, setDragging] = useState(false)
   const [compressing, setCompressing] = useState(false)
-  const [uploading, startTransition] = useTransition()
+  const [uploading, setUploading] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -58,13 +59,6 @@ export default function CreatePostForm({
 
   const handleFile = useCallback(async (file: File) => {
     if (!file) return
-
-    const MAX_VIDEO_SIZE = 20 * 1024 * 1024 // 20 MB
-
-if (file.type.startsWith('video') && file.size > MAX_VIDEO_SIZE) {
-  alert('O vídeo deve ter no máximo 20 MB.')
-  return
-}
 
     if (media?.preview) {
       URL.revokeObjectURL(media.preview)
@@ -119,48 +113,57 @@ if (file.type.startsWith('video') && file.size > MAX_VIDEO_SIZE) {
     await handleFile(file)
   }
 
-  const publish = () => {
-    startTransition(async () => {
-      const form = new FormData()
+  const publish = async () => {
+  if (uploading) return
 
-      form.append('content', text)
+  setUploading(true)
 
-      if (media?.type === 'image') {
-  form.append('image', media.file)
-}
+  try {
+    const form = new FormData()
 
-if (media?.type === 'video') {
-  form.append('video', media.file)
-}
+    form.append('content', text)
 
-      const response = await fetch('/api/feed/criar', {
-        method: 'POST',
-        body: form,
-      })
+    if (media) {
+      const mediaUrl = await uploadMedia(
+        media.file,
+        media.type === 'image' ? 'images' : 'videos'
+      )
 
-      try {
-  const response = await fetch('/api/feed/criar', {
-    method: 'POST',
-    body: form,
-  })
+      form.append(
+        media.type === 'image'
+          ? 'image_url'
+          : 'video_url',
+        mediaUrl
+      )
+    }
 
-  const text = await response.text()
-
-  console.log('STATUS:', response.status)
-  console.log('BODY:', text)
-
-  if (!response.ok) {
-    alert(text)
-    return
-  }
-
-  window.location.href = '/feed'
-} catch (err) {
-  console.error(err)
-  alert('Erro ao publicar. Veja o console.')
-}
+    const response = await fetch('/api/feed/criar', {
+      method: 'POST',
+      body: form,
     })
+
+    const body = await response.text()
+
+    console.log('STATUS:', response.status)
+    console.log('BODY:', body)
+
+    if (!response.ok) {
+      throw new Error(body)
+    }
+
+    window.location.href = '/feed'
+  } catch (err) {
+    console.error(err)
+
+    alert(
+      err instanceof Error
+        ? err.message
+        : 'Erro ao publicar.'
+    )
+  } finally {
+    setUploading(false)
   }
+}
 
   return (
     <div className="mx-auto w-full max-w-2xl">
@@ -178,7 +181,9 @@ if (media?.type === 'video') {
 
           <button
             disabled={uploading}
-            onClick={publish}
+            onClick={() => {
+  void publish()
+}}
             className="flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 font-semibold text-white transition hover:scale-[1.02] active:scale-95 disabled:opacity-50"
           >
             {uploading ? (
