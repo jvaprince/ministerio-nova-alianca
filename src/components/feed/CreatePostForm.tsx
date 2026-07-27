@@ -59,6 +59,13 @@ export default function CreatePostForm({
   const handleFile = useCallback(async (file: File) => {
     if (!file) return
 
+    const MAX_VIDEO_SIZE = 20 * 1024 * 1024 // 20 MB
+
+if (file.type.startsWith('video') && file.size > MAX_VIDEO_SIZE) {
+  alert('O vídeo deve ter no máximo 20 MB.')
+  return
+}
+
     if (media?.preview) {
       URL.revokeObjectURL(media.preview)
     }
@@ -160,14 +167,36 @@ if (media?.type === 'video') {
             className="flex items-center gap-2 rounded-full bg-brand-500 px-5 py-3 font-semibold text-white transition hover:scale-[1.02] active:scale-95 disabled:opacity-50"
           >
             {uploading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-
-            Publicar
+  <>
+    <Loader2 className="h-5 w-5 animate-spin" />
+    Publicando...
+  </>
+) : (
+  <>
+    <Send className="h-5 w-5" />
+    Publicar
+  </>
+)}
           </button>
         </div>
+
+        {uploading && (
+  <div className="border-b border-white/10 bg-brand-500/10 px-6 py-4">
+    <div className="flex items-center gap-3">
+      <Loader2 className="h-5 w-5 animate-spin text-brand-400" />
+
+      <div>
+        <p className="text-sm font-medium text-white">
+          Publicando...
+        </p>
+
+        <p className="text-xs text-zinc-400">
+          Aguarde alguns segundos. Não feche o aplicativo.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
         <div className="p-6">
           <textarea
