@@ -138,12 +138,27 @@ if (media?.type === 'video') {
         body: form,
       })
 
-      if (!response.ok) {
-        const json = await response.json()
-        throw new Error(json.error)
-      }
+      try {
+  const response = await fetch('/api/feed/criar', {
+    method: 'POST',
+    body: form,
+  })
 
-      window.location.href = '/feed'
+  const text = await response.text()
+
+  console.log('STATUS:', response.status)
+  console.log('BODY:', text)
+
+  if (!response.ok) {
+    alert(text)
+    return
+  }
+
+  window.location.href = '/feed'
+} catch (err) {
+  console.error(err)
+  alert('Erro ao publicar. Veja o console.')
+}
     })
   }
 
